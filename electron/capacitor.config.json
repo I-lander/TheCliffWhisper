@@ -1,0 +1,8 @@
+{
+  "appId": "com.donkeysisle.thecliffwhisperer",
+  "appName": "the-cliff-whisperer",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

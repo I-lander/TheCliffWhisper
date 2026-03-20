@@ -1,0 +1,7 @@
+{
+  "name": "the-cliff-whisperer",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
