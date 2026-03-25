@@ -31,7 +31,7 @@ export class EndRunScene extends Phaser.Scene {
     this.add.text(cx, cy - tileSize * 2, title, {
       fontSize: `${titleSize}px`,
       color: titleColor,
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
     }).setOrigin(0.5);
 
     // Stats
@@ -42,7 +42,7 @@ export class EndRunScene extends Phaser.Scene {
     this.add.text(cx, cy, statsLines, {
       fontSize: `${bodySize}px`,
       color: '#888888',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       align: 'center',
     }).setOrigin(0.5);
 
@@ -50,7 +50,7 @@ export class EndRunScene extends Phaser.Scene {
     this.add.text(cx, cy + tileSize * 3, 'Click to try again', {
       fontSize: `${bodySize}px`,
       color: '#555555',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
     }).setOrigin(0.5);
 
     this.input.once(Phaser.Input.Events.POINTER_DOWN, () => {

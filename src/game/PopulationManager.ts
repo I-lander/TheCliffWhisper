@@ -44,8 +44,6 @@ export class PopulationManager {
 
   private onDayStart() {
     this.birthAppliedThisDay = false;
-    this.jumped = 0;
-    this.turnedBack = 0;
     this.born = 0;
   }
 

@@ -17,6 +17,8 @@ export class LoadingScene extends Phaser.Scene {
   }
 
   async create() {
+    // Wait for custom font to be loaded before starting scenes
+    await document.fonts.load('16px PixelSleigh');
     this.scene.start('MainScene');
     this.scene.start('UIScene');
     this.scene.bringToTop('UIScene');

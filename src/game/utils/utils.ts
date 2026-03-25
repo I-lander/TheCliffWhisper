@@ -216,6 +216,37 @@ export function toggleDebugGrid(scene: CustomScene) {
   }
 }
 
+/**
+ * Draw a dashed line on a Phaser Graphics object.
+ */
+export function drawDashedLine(
+  g: Phaser.GameObjects.Graphics,
+  x1: number, y1: number,
+  x2: number, y2: number,
+  dashLen: number,
+  gapLen: number,
+  lineWidth: number,
+  color: number,
+  alpha: number,
+) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const step = dashLen + gapLen;
+
+  g.lineStyle(lineWidth, color, alpha);
+  for (let d = 0; d < dist; d += step) {
+    const sx = x1 + nx * d;
+    const sy = y1 + ny * d;
+    const end = Math.min(d + dashLen, dist);
+    const ex = x1 + nx * end;
+    const ey = y1 + ny * end;
+    g.lineBetween(sx, sy, ex, ey);
+  }
+}
+
 export interface AtlasFrame {
   frame: {
     x: number;

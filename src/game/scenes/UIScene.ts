@@ -1,5 +1,5 @@
 import { CustomScene } from '../customClasses/CustomScene';
-import { GameManager, GamePhase } from '../GameManager';
+import { GameManager } from '../GameManager';
 import { PopulationManager } from '../PopulationManager';
 import { MainScene } from './MainScene';
 
@@ -24,13 +24,6 @@ export class UIScene extends CustomScene {
   private dailyStatsText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
 
-  // Top-center: day progress bar
-  private progressBarBg!: Phaser.GameObjects.Graphics;
-  private progressBarFill!: Phaser.GameObjects.Graphics;
-  private progressBarWidth: number = 0;
-  private progressBarHeight: number = 0;
-  private progressBarX: number = 0;
-  private progressBarY: number = 0;
 
 
   constructor() {
@@ -55,7 +48,7 @@ export class UIScene extends CustomScene {
       .text(padding, padding, '', {
         fontSize: `${fontSize}px`,
         color: '#ffffff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setAlpha(0.8);
 
@@ -63,7 +56,7 @@ export class UIScene extends CustomScene {
       .text(padding, padding + fontSize * 1.2, '', {
         fontSize: `${fontSize}px`,
         color: '#ffffff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setAlpha(0.8);
 
@@ -71,7 +64,7 @@ export class UIScene extends CustomScene {
       .text(padding, padding + fontSize * 2.4, '', {
         fontSize: `${fontSize}px`,
         color: '#ffffff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setAlpha(0.6);
 
@@ -80,7 +73,7 @@ export class UIScene extends CustomScene {
       .text(screenWidth - padding, padding, '', {
         fontSize: `${fontSize}px`,
         color: '#ffffff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
         align: 'right',
       })
       .setOrigin(1, 0)
@@ -90,7 +83,7 @@ export class UIScene extends CustomScene {
       .text(screenWidth - padding, padding + fontSize * 1.2, '', {
         fontSize: `${smallFontSize}px`,
         color: '#ff6666',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
         align: 'right',
       })
       .setOrigin(1, 0)
@@ -101,7 +94,7 @@ export class UIScene extends CustomScene {
       .text(screenWidth - padding, padding + fontSize * 2.4, '', {
         fontSize: `${smallFontSize}px`,
         color: '#ff4444',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
         align: 'right',
       })
       .setOrigin(1, 0)
@@ -112,7 +105,7 @@ export class UIScene extends CustomScene {
       .text(padding, this.cameras.main.height - padding, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaaaaa',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setOrigin(0, 1)
       .setAlpha(0.6);
@@ -122,26 +115,10 @@ export class UIScene extends CustomScene {
       .text(padding, this.cameras.main.height - padding - smallFontSize * 1.5, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaccff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setOrigin(0, 1)
       .setAlpha(0.8);
-
-    // Top-center: day progress bar
-    this.progressBarWidth = screenWidth * 0.3;
-    this.progressBarHeight = Math.round(this.tileSize * 0.25);
-    this.progressBarX = (screenWidth - this.progressBarWidth) / 2;
-    this.progressBarY = padding;
-    this.progressBarBg = this.add.graphics();
-    this.progressBarBg.fillStyle(0x333344, 0.5);
-    this.progressBarBg.fillRoundedRect(
-      this.progressBarX,
-      this.progressBarY,
-      this.progressBarWidth,
-      this.progressBarHeight,
-      3,
-    );
-    this.progressBarFill = this.add.graphics();
 
   }
 
@@ -157,12 +134,11 @@ export class UIScene extends CustomScene {
     if (!this.gameManager || !this.populationManager) return;
 
     const phase = this.gameManager.getPhase();
-    const remaining = Math.ceil(this.gameManager.getPhaseRemaining() / 1000);
     const day = this.gameManager.getDayCount();
 
     this.dayText.setText(`Day ${day}`);
     this.phaseText.setText(phase);
-    this.timerText.setText(phase === GamePhase.Daytime ? '' : `${remaining}s`);
+    this.timerText.setText('');
 
     const pop = this.populationManager.population;
     const birthRate = this.populationManager.getCurrentBirthRate();
@@ -183,32 +159,5 @@ export class UIScene extends CustomScene {
 
     const souls = this.mainScene.constellationManager.souls;
     this.soulsText.setText(`Souls: ${souls}`);
-
-    // Progress bar — visible only during Daytime
-    this.progressBarFill.clear();
-    if (phase === GamePhase.Daytime) {
-      this.progressBarBg.setAlpha(1);
-      const duration = this.gameManager.getPhaseDuration();
-      const elapsed = this.gameManager.getPhaseElapsed();
-      const progress = Math.min(1, elapsed / duration);
-      const fillWidth = this.progressBarWidth * progress;
-
-      // Color shifts from white to orange to red as day ends
-      let color = 0xccccdd;
-      if (progress > 0.7) color = 0xffaa44;
-      if (progress > 0.9) color = 0xff4444;
-
-      this.progressBarFill.fillStyle(color, 0.8);
-      this.progressBarFill.fillRoundedRect(
-        this.progressBarX,
-        this.progressBarY,
-        fillWidth,
-        this.progressBarHeight,
-        3,
-      );
-    } else {
-      this.progressBarBg.setAlpha(0);
-    }
-
   }
 }

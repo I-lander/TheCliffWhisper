@@ -28,6 +28,7 @@ export class MainScene extends CustomScene {
   private cardHandUI!: CardHandUI;
   private juiceEffects!: JuiceEffects;
   private decorContainer!: Phaser.GameObjects.Container;
+  private endDayBtn!: Phaser.GameObjects.Text;
 
   canvasWidth: number = 0;
   canvasHeight: number = 0;
@@ -74,8 +75,6 @@ export class MainScene extends CustomScene {
 
     this.constellationManager = new ConstellationManager(
       this.populationManager.stats,
-      this.populationManager,
-      this.gameManager,
     );
 
     this.deckManager = new DeckManager(this.populationManager, this.gameManager);
@@ -142,6 +141,20 @@ export class MainScene extends CustomScene {
 
     const nightScrollY = this.groundY - this.canvasHeight + this.tileSize;
 
+    // End Day button (visible during Daytime only)
+    this.endDayBtn = this.add
+      .text(this.canvasWidth / 2, this.tileSize * 0.8, '[ End Day ]', {
+        fontSize: `${Math.round(this.tileSize * 0.5)}px`,
+        color: '#aaccff',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0.5)
+      .setDepth(160)
+      .setInteractive({ useHandCursor: true });
+    this.endDayBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.endDayBtn.setColor('#ffffff'));
+    this.endDayBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.endDayBtn.setColor('#aaccff'));
+    this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.gameManager.skipPhase());
+
     this.gameManager.onPhaseChange((phase) => {
       this.cameras.main.setBackgroundColor(SKY_COLORS[phase]);
       if (phase === GamePhase.Daytime) {
@@ -160,9 +173,11 @@ export class MainScene extends CustomScene {
         this.skillTreeUI.refresh();
       }
 
-      // Show card hand during Daytime
-      this.cardHandUI.setVisible(phase === GamePhase.Daytime);
-      if (phase === GamePhase.Daytime) {
+      // Show card hand + end day button during Daytime
+      const isDaytime = phase === GamePhase.Daytime;
+      this.cardHandUI.setVisible(isDaytime);
+      this.endDayBtn.setVisible(isDaytime);
+      if (isDaytime) {
         this.cardHandUI.refresh();
       }
 
@@ -174,14 +189,10 @@ export class MainScene extends CustomScene {
         duration: 800,
         ease: 'Power2',
         onUpdate: () => {
-          if (isNight) {
-            this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
-          }
+          this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
         },
       });
-      if (isNight) {
-        this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
-      }
+      this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
     });
 
     // Start in daytime
@@ -422,6 +433,7 @@ export class MainScene extends CustomScene {
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
+        this.constellationManager.onHumanKilled();
         this.juiceEffects.onJump(jumpX, jumpY);
         this.deckManager.tryDropCard(this.constellationManager.bonuses.cardDropRate);
 

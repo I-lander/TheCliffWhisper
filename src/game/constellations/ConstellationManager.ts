@@ -1,39 +1,23 @@
-import { GameManager, GamePhase } from '../GameManager';
-import { PopulationManager, PopulationStats } from '../PopulationManager';
+import { PopulationStats } from '../PopulationManager';
 import { SKILL_TREES, SkillTree, ConstellationBonuses, DEFAULT_BONUSES } from './ConstellationData';
 
 const STARTING_SOULS = 5;
 
 export class ConstellationManager {
   souls: number = STARTING_SOULS;
-  soulsEarnedLastDay: number = 0;
   unlockedNodes: Set<string> = new Set();
   bonuses: ConstellationBonuses = { ...DEFAULT_BONUSES };
 
   private stats: PopulationStats;
-  private populationManager: PopulationManager;
   private trees: SkillTree[] = SKILL_TREES;
 
-  constructor(
-    stats: PopulationStats,
-    populationManager: PopulationManager,
-    gameManager: GameManager,
-  ) {
+  constructor(stats: PopulationStats) {
     this.stats = stats;
-    this.populationManager = populationManager;
-
-    // Grant souls at the start of each night: 1 per human jumped the previous day
-    gameManager.onPhaseChange((phase) => {
-      if (phase === GamePhase.Night) {
-        this.grantSouls();
-      }
-    });
   }
 
-  private grantSouls() {
-    const earned = this.populationManager.jumped;
-    this.soulsEarnedLastDay = earned;
-    this.souls += earned;
+  /** Called each time a human dies — grants 1 soul immediately. */
+  onHumanKilled() {
+    this.souls++;
   }
 
   getTrees(): SkillTree[] {

@@ -1,5 +1,6 @@
 import { ConstellationManager } from '../constellations/ConstellationManager';
 import { SkillTree } from '../constellations/ConstellationData';
+import { drawDashedLine } from '../utils/utils';
 
 const LOCKED_ALPHA = 0.18;
 
@@ -60,6 +61,7 @@ export class SkillTreeUI {
   private spacing: number;
   private constellationW: number;
   private constellationH: number;
+  private dayOffsetY: number;
 
   constructor(scene: Phaser.Scene, constellationMgr: ConstellationManager, onEndNight: () => void) {
     this.scene = scene;
@@ -77,6 +79,11 @@ export class SkillTreeUI {
     this.baseX = this.spacing;
     this.baseY = tileSize * 1.5 + this.constellationH / 2;
 
+    // During day (camera scrollY=0), offset so root node sits just above groundY
+    const groundY = cam.height * 0.4;
+    const rootScreenY = this.baseY + 0.82 * (this.constellationH / 2);
+    this.dayOffsetY = groundY - tileSize * 2 - rootScreenY;
+
     this.container = scene.add.container(0, 0);
 
     // Budget text
@@ -85,7 +92,7 @@ export class SkillTreeUI {
       .text(cam.width / 2, tileSize * 0.5, '', {
         fontSize: `${fontSize}px`,
         color: '#aaccff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
       .setAlpha(0.9);
@@ -97,7 +104,7 @@ export class SkillTreeUI {
       .text(cam.width / 2, btnY, '[ End Night ]', {
         fontSize: `${Math.round(tileSize * 0.6)}px`,
         color: '#aaccff',
-        fontFamily: 'monospace',
+        fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -118,18 +125,18 @@ export class SkillTreeUI {
     this.tooltipName = scene.add.text(0, 0, '', {
       fontSize: `${ttFont}px`,
       color: '#ffffff',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       fontStyle: 'bold',
     });
     this.tooltipDesc = scene.add.text(0, ttFont * 1.4, '', {
       fontSize: `${Math.round(ttFont * 0.85)}px`,
       color: '#aaaaaa',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
     });
     this.tooltipCost = scene.add.text(0, ttFont * 2.8, '', {
       fontSize: `${Math.round(ttFont * 0.85)}px`,
       color: '#ffcc44',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
     });
     this.tooltipContainer.add([
       this.tooltipBg,
@@ -142,14 +149,22 @@ export class SkillTreeUI {
     this.setVisible(false);
   }
 
+  private isNight: boolean = false;
+
   setVisible(visible: boolean) {
-    this.container.setVisible(visible);
+    this.isNight = visible;
+    // Always keep the container visible — day mode shows unlocked nodes at low alpha
+    this.container.setVisible(true);
+    this.budgetText.setVisible(visible);
+    this.endNightBtn.setVisible(visible);
     if (!visible) this.tooltipContainer.setVisible(false);
+    // Refresh to apply day/night alpha
+    this.refresh();
   }
 
   /** Reposition the container in world space so it stays screen-fixed despite camera scroll. */
   setCameraOffset(scrollY: number) {
-    this.container.setY(scrollY);
+    this.container.setY(this.isNight ? scrollY : this.dayOffsetY);
   }
 
   refresh() {
@@ -188,22 +203,27 @@ export class SkillTreeUI {
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(0, 0);
 
-    // ── Background web: faint radial lines from root ──
-    const rootPos = this.nodeScreenPos(tree, 0, cx, cy);
-    const webGraphics = this.scene.add.graphics();
-    webGraphics.lineStyle(1, 0x222244, 0.08);
-    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 12) {
-      const len = Math.max(this.constellationW, this.constellationH) * 0.6;
-      webGraphics.lineBetween(
-        rootPos.x, rootPos.y,
-        rootPos.x + Math.cos(angle) * len,
-        rootPos.y + Math.sin(angle) * len,
-      );
+    const dayAlpha = this.isNight ? 1 : 0.15;
+
+    // ── Background web: faint radial lines from root (night only) ──
+    if (this.isNight) {
+      const rootPos = this.nodeScreenPos(tree, 0, cx, cy);
+      const webGraphics = this.scene.add.graphics();
+      webGraphics.lineStyle(1, 0x222244, 0.08);
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 12) {
+        const len = Math.max(this.constellationW, this.constellationH) * 0.6;
+        webGraphics.lineBetween(
+          rootPos.x, rootPos.y,
+          rootPos.x + Math.cos(angle) * len,
+          rootPos.y + Math.sin(angle) * len,
+        );
+      }
+      container.add(webGraphics);
     }
-    container.add(webGraphics);
 
     // ── Edges ──
     const edgeGraphics = this.scene.add.graphics();
+    edgeGraphics.setAlpha(dayAlpha);
     for (const [fromIdx, toIdx] of tree.edges) {
       const from = this.nodeScreenPos(tree, fromIdx, cx, cy);
       const to = this.nodeScreenPos(tree, toIdx, cx, cy);
@@ -214,24 +234,23 @@ export class SkillTreeUI {
       const bothUnlocked = fromUnlocked && toUnlocked;
       const eitherUnlocked = fromUnlocked || toUnlocked;
 
+      // Day mode: only draw unlocked edges
+      if (!this.isNight && !bothUnlocked) continue;
+
+      const pu = this.scene.cameras.main.height / 288; // pixelUnit
+      const dash = pu * 4;
+      const gap = pu * 3;
+
       if (bothUnlocked) {
-        // Bright glowing edge
         const branchColor = getBranchColor(toNode.id);
-        edgeGraphics.lineStyle(4, branchColor, 0.12);
-        edgeGraphics.lineBetween(from.x, from.y, to.x, to.y);
-        edgeGraphics.lineStyle(2, branchColor, 0.5);
-        edgeGraphics.lineBetween(from.x, from.y, to.x, to.y);
-        edgeGraphics.lineStyle(1, 0xffffff, 0.4);
-        edgeGraphics.lineBetween(from.x, from.y, to.x, to.y);
+        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu * 3, branchColor, 0.12);
+        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, branchColor, 0.5);
+        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, 0xffffff, 0.4);
       } else if (eitherUnlocked) {
-        // Partially lit
         const branchColor = getBranchColor(toNode.id);
-        edgeGraphics.lineStyle(1.5, branchColor, 0.2);
-        edgeGraphics.lineBetween(from.x, from.y, to.x, to.y);
+        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, branchColor, 0.2);
       } else {
-        // Dark dormant line
-        edgeGraphics.lineStyle(1, 0x333355, 0.15);
-        edgeGraphics.lineBetween(from.x, from.y, to.x, to.y);
+        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, 0x333355, 0.15);
       }
     }
     container.add(edgeGraphics);
@@ -245,7 +264,11 @@ export class SkillTreeUI {
       const branchColor = getBranchColor(node.id);
       const radius = TIER_RADIUS[tier];
 
+      // Day mode: only draw unlocked nodes
+      if (!this.isNight && !isUnlocked) return;
+
       const g = this.scene.add.graphics();
+      g.setAlpha(dayAlpha);
 
       if (isUnlocked) {
         this.drawUnlockedNode(g, pos.x, pos.y, radius, tier, branchColor);
@@ -257,31 +280,33 @@ export class SkillTreeUI {
 
       container.add(g);
 
-      // Interactive zone
-      const hitRadius = Math.max(radius * 2.5, 16);
-      const hitZone = this.scene.add
-        .circle(pos.x, pos.y, hitRadius)
-        .setInteractive({ useHandCursor: canUnlock })
-        .setAlpha(0.001);
+      // Interactive zone (night only)
+      if (this.isNight) {
+        const hitRadius = Math.max(radius * 2.5, 16);
+        const hitZone = this.scene.add
+          .circle(pos.x, pos.y, hitRadius)
+          .setInteractive({ useHandCursor: canUnlock })
+          .setAlpha(0.001);
 
-      hitZone.on(Phaser.Input.Events.POINTER_OVER, () => {
-        this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, branchColor);
-      });
-      hitZone.on(Phaser.Input.Events.POINTER_OUT, () => {
-        this.tooltipContainer.setVisible(false);
-      });
-
-      if (canUnlock) {
-        hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
-          const success = this.constellationMgr.unlockNode(tree.id, nodeIndex);
-          if (success) {
-            this.tooltipContainer.setVisible(false);
-            this.refresh();
-          }
+        hitZone.on(Phaser.Input.Events.POINTER_OVER, () => {
+          this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, branchColor);
         });
-      }
+        hitZone.on(Phaser.Input.Events.POINTER_OUT, () => {
+          this.tooltipContainer.setVisible(false);
+        });
 
-      container.add(hitZone);
+        if (canUnlock) {
+          hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+            const success = this.constellationMgr.unlockNode(tree.id, nodeIndex);
+            if (success) {
+              this.tooltipContainer.setVisible(false);
+              this.refresh();
+            }
+          });
+        }
+
+        container.add(hitZone);
+      }
     });
 
     return container;

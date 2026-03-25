@@ -69,7 +69,7 @@ export class CardHandUI {
     const nameText = this.scene.add.text(pad, pad, def.name, {
       fontSize: `${nameSize}px`,
       color: getTierColor(def.tier),
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       fontStyle: 'bold',
       wordWrap: { width: textWidth },
       lineSpacing: 2,
@@ -89,7 +89,7 @@ export class CardHandUI {
     const effectText = this.scene.add.text(pad, effectY, def.effectText, {
       fontSize: `${effectSize}px`,
       color: '#dddddd',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       wordWrap: { width: textWidth },
       lineSpacing: 4,
     });
@@ -106,7 +106,7 @@ export class CardHandUI {
     const penaltyLabel = this.scene.add.text(pad, penaltyY, 'Penalty', {
       fontSize: `${penaltySize}px`,
       color: '#ff4444',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       fontStyle: 'bold',
     }).setAlpha(0.7);
     container.add(penaltyLabel);
@@ -114,7 +114,7 @@ export class CardHandUI {
     const penaltyText = this.scene.add.text(pad, penaltyY + penaltySize * 1.3, def.penaltyText, {
       fontSize: `${penaltySize}px`,
       color: '#cc6666',
-      fontFamily: 'monospace',
+      fontFamily: 'PixelSleigh',
       wordWrap: { width: textWidth },
       lineSpacing: 2,
     }).setAlpha(0.8);

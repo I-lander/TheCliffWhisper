@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'PixelSleigh';
+  src: url('./assets/font/PixelSleigh-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   --background-color: #141414;
 }

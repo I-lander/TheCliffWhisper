@@ -82,8 +82,9 @@ export class GameManager {
   update(delta: number) {
     if (!this.running) return;
 
-    // Night does not auto-advance — player must click "End Night"
+    // Night and Daytime do not auto-advance — player decides when to end
     if (this.currentPhase === GamePhase.Night) return;
+    if (this.currentPhase === GamePhase.Daytime) return;
 
     this.phaseElapsed += delta;
 
