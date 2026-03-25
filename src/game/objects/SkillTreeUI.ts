@@ -15,9 +15,11 @@ const TIER_RADIUS: Record<NodeTier, number> = {
 
 // Branch tip indices (last node of each branch)
 const BRANCH_TIP_IDS = new Set([
-  'ha_6', 'ha_f3', 'fa_6', 'fa_f3', 'ti_5', 'ti_f3',
-  'vo_6', 'vo_f3', 'ac_6', 'ac_f3', 'fr_5', 'fr_f3',
-  'pw_6', 'pw_f3', 'hv_5', 'hv_f3',
+  'ha_k1', 'ha_k2', 'fa_k1', 'fa_k2', 'ti_k2',
+  'vo_k1', 'au_k1', 'fr_k1', 'fr_k2',
+  'po_k1', 'hv_k1', 'hv_k2',
+  // ability unlock nodes
+  'ha_b2', 'fa_b3', 'ti_a3', 'vo_a3', 'au_b3', 'hv_a2',
 ]);
 
 // Per-branch colors keyed by node id prefix
@@ -27,10 +29,11 @@ const BRANCH_COLORS: Record<string, number> = {
   fa: 0xbb66ff,  // faith — purple
   ti: 0x44ff88,  // tide — green
   vo: 0xff4466,  // void — red
-  ac: 0x44ddff,  // automation — cyan
+  au: 0x44ddff,  // automation — cyan
   fr: 0xff8844,  // frenzy — orange
-  pw: 0xff66aa,  // power — pink
+  po: 0xff66aa,  // power — pink
   hv: 0x88ddff,  // harvest — light blue
+  xb: 0xdddddd,  // cross-branch — white
 };
 
 function getBranchColor(nodeId: string): number {
@@ -270,18 +273,34 @@ export class SkillTreeUI {
       // Day mode: only draw unlocked nodes
       if (!this.isNight && !isUnlocked) return;
 
-      const g = this.scene.add.graphics();
-      g.setAlpha(dayAlpha);
+      const starScale = (tier === 'keystone' ? 1.8 : tier === 'notable' ? 1.2 : 0.7) * (this.scene.cameras.main.height / 18 / 16);
 
       if (isUnlocked) {
-        this.drawUnlockedNode(g, pos.x, pos.y, radius, tier, branchColor);
+        // Glow behind star
+        const glow = this.scene.add.graphics();
+        glow.fillStyle(branchColor, 0.08);
+        glow.fillCircle(pos.x, pos.y, radius * 3);
+        glow.fillStyle(branchColor, 0.15);
+        glow.fillCircle(pos.x, pos.y, radius * 1.8);
+        glow.setAlpha(dayAlpha);
+        container.add(glow);
+        // Star sprite tinted with branch color
+        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale).setAlpha(dayAlpha);
+        star.setTintFill(branchColor);
+        container.add(star);
+        // Bright center
+        const center = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.5).setAlpha(0.9 * dayAlpha);
+        star.setTintFill(0xffffff);
+        container.add(center);
       } else if (canUnlock) {
-        this.drawAffordableNode(g, pos.x, pos.y, radius, tier, branchColor);
+        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.9).setAlpha(0.5 * dayAlpha);
+        star.setTintFill(branchColor);
+        container.add(star);
       } else {
-        this.drawLockedNode(g, pos.x, pos.y, radius, tier);
+        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.6).setAlpha(LOCKED_ALPHA * dayAlpha);
+        star.setTintFill(0x445566);
+        container.add(star);
       }
-
-      container.add(g);
 
       // Interactive zone (night only)
       if (this.isNight) {
@@ -313,88 +332,6 @@ export class SkillTreeUI {
     });
 
     return container;
-  }
-
-  // ── Node rendering by state ──
-
-  private drawUnlockedNode(
-    g: Phaser.GameObjects.Graphics,
-    x: number, y: number,
-    radius: number,
-    tier: NodeTier,
-    color: number,
-  ) {
-    // Outer glow layers (bloom effect)
-    g.fillStyle(color, 0.04);
-    g.fillCircle(x, y, radius * 4);
-    g.fillStyle(color, 0.08);
-    g.fillCircle(x, y, radius * 2.8);
-    g.fillStyle(color, 0.14);
-    g.fillCircle(x, y, radius * 1.8);
-
-    // Ring border
-    if (tier === 'keystone') {
-      g.lineStyle(3, 0xffffff, 0.6);
-      g.strokeCircle(x, y, radius + 3);
-      g.lineStyle(1.5, color, 0.5);
-      g.strokeCircle(x, y, radius + 6);
-    } else if (tier === 'notable') {
-      g.lineStyle(2, 0xffffff, 0.5);
-      g.strokeCircle(x, y, radius + 2);
-    }
-
-    // Core fill
-    g.fillStyle(0xffffff, 0.9);
-    g.fillCircle(x, y, radius);
-
-    // Inner color overlay
-    g.fillStyle(color, 0.35);
-    g.fillCircle(x, y, radius * 0.7);
-
-    // Center bright dot
-    g.fillStyle(0xffffff, 0.95);
-    g.fillCircle(x, y, radius * 0.25);
-  }
-
-  private drawAffordableNode(
-    g: Phaser.GameObjects.Graphics,
-    x: number, y: number,
-    radius: number,
-    tier: NodeTier,
-    color: number,
-  ) {
-    // Subtle glow to indicate affordability
-    g.fillStyle(color, 0.06);
-    g.fillCircle(x, y, radius * 2.5);
-
-    // Pulsing ring
-    g.lineStyle(tier === 'keystone' ? 2.5 : tier === 'notable' ? 2 : 1.5, color, 0.55);
-    g.strokeCircle(x, y, radius + 2);
-
-    // Dim fill
-    g.fillStyle(color, 0.25);
-    g.fillCircle(x, y, radius);
-
-    // Inner dot
-    g.fillStyle(0xffffff, 0.3);
-    g.fillCircle(x, y, radius * 0.3);
-  }
-
-  private drawLockedNode(
-    g: Phaser.GameObjects.Graphics,
-    x: number, y: number,
-    radius: number,
-    tier: NodeTier,
-  ) {
-    // Barely visible outline
-    const r = tier === 'keystone' ? radius : tier === 'notable' ? radius * 0.85 : radius * 0.7;
-
-    g.lineStyle(1, 0x445566, LOCKED_ALPHA);
-    g.strokeCircle(x, y, r);
-
-    // Very dim fill
-    g.fillStyle(0x334455, LOCKED_ALPHA * 0.6);
-    g.fillCircle(x, y, r * 0.5);
   }
 
   // ── Tooltip ──

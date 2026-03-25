@@ -14,6 +14,7 @@ export class LoadingScene extends Phaser.Scene {
       frameHeight: 16,
     });
     this.load.image('soul', './assets/images/soul.png');
+    this.load.image('star', './assets/images/star.png');
   }
 
   async create() {
