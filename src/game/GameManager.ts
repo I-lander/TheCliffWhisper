@@ -21,7 +21,7 @@ const PHASE_ORDER: GamePhase[] = [
 ];
 
 export class GameManager {
-  private currentPhase: GamePhase = GamePhase.Night;
+  private currentPhase: GamePhase = GamePhase.Daytime;
   private phaseElapsed: number = 0;
   private phaseExtension: number = 0;
   private dayCount: number = 1;

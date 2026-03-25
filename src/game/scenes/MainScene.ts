@@ -140,10 +140,13 @@ export class MainScene extends CustomScene {
     this.uiScene.setGameManager(this.gameManager);
     this.uiScene.setPopulationManager(this.populationManager);
 
+    const nightScrollY = -this.canvasHeight * 0.35;
+
     this.gameManager.onPhaseChange((phase) => {
       this.cameras.main.setBackgroundColor(SKY_COLORS[phase]);
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
+        this.clickCooldownTimer = 0;
         this.juiceEffects.resetDaily();
       }
       if (phase === GamePhase.Sunset) {
@@ -162,12 +165,18 @@ export class MainScene extends CustomScene {
       if (phase === GamePhase.Daytime) {
         this.cardHandUI.refresh();
       }
+
+      // Camera pan: night = scroll up to show constellation, day/sunset = normal
+      this.tweens.add({
+        targets: this.cameras.main,
+        scrollY: isNight ? nightScrollY : 0,
+        duration: 800,
+        ease: 'Power2',
+      });
     });
 
-    // Start in night
-    this.skillTreeUI.setVisible(true);
-    this.skillTreeUI.refresh();
-    this.cameras.main.setBackgroundColor(SKY_COLORS[GamePhase.Night]);
+    // Start in daytime
+    this.cameras.main.setBackgroundColor(SKY_COLORS[GamePhase.Daytime]);
 
     // Cooldown bar (bottom-center, hidden by default)
     const barWidth = this.tileSize * 4;
@@ -178,11 +187,13 @@ export class MainScene extends CustomScene {
       .rectangle(barX, barY, barWidth, barHeight, 0x000000, 0.4)
       .setOrigin(0, 0)
       .setDepth(150)
+      .setScrollFactor(0)
       .setVisible(false);
     this.cooldownBar = this.add
       .rectangle(barX, barY, barWidth, barHeight, 0xaaccff, 0.8)
       .setOrigin(0, 0)
       .setDepth(151)
+      .setScrollFactor(0)
       .setVisible(false);
 
     // Click on cliff during daytime = spawn 1 human
@@ -266,7 +277,7 @@ export class MainScene extends CustomScene {
       this.canvasHeight - this.groundY,
     );
     g.lineStyle(2, 0x333333);
-    g.lineBetween(0, this.groundY, this.canvasWidth, this.groundY);
+    g.lineBetween(0, this.groundY, this.cliffEdgeX, this.groundY);
   }
 
   update(time: number, delta: number) {

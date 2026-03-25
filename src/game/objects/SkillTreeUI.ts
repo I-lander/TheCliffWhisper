@@ -4,7 +4,7 @@ import { SkillTree } from '../constellations/ConstellationData';
 const STAR_RADIUS = 10;
 const STAR_RADIUS_UNLOCKED = 13;
 const CONSTELLATION_WIDTH = 400;
-const CONSTELLATION_HEIGHT = 420;
+const CONSTELLATION_HEIGHT = 520;
 const LOCKED_ALPHA = 0.25;
 const AFFORDABLE_ALPHA = 0.6;
 
@@ -39,7 +39,7 @@ export class SkillTreeUI {
     this.baseX = this.spacing;
     this.baseY = tileSize * 2 + CONSTELLATION_HEIGHT / 2;
 
-    this.container = scene.add.container(0, 0);
+    this.container = scene.add.container(0, 0).setScrollFactor(0);
 
     // Budget text
     const fontSize = Math.round(tileSize * 0.55);
