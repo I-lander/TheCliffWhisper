@@ -17,6 +17,9 @@ export class JuiceEffects {
 
   onJump(x: number, y: number) {
     this.spawnJumpParticles(x, y);
+  }
+
+  onDeath() {
     this.scene.cameras.main.shake(60, 0.002);
   }
 

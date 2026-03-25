@@ -15,19 +15,22 @@ const TIER_RADIUS: Record<NodeTier, number> = {
 
 // Branch tip indices (last node of each branch)
 const BRANCH_TIP_IDS = new Set([
-  'ac_4', 'fa_4', 'ha_3', 'ti_4', 'vo_4', 'om_4', 'cc_3',
+  'ha_6', 'ha_f3', 'fa_6', 'fa_f3', 'ti_5', 'ti_f3',
+  'vo_6', 'vo_f3', 'ac_6', 'ac_f3', 'fr_5', 'fr_f3',
+  'pw_6', 'pw_f3', 'hv_5', 'hv_f3',
 ]);
 
 // Per-branch colors keyed by node id prefix
 const BRANCH_COLORS: Record<string, number> = {
   root: 0xffffff,
-  ac: 0x44ddff,  // auto-clicker — cyan
-  fa: 0xbb66ff,  // faith — purple
   ha: 0xffcc44,  // haste — yellow
+  fa: 0xbb66ff,  // faith — purple
   ti: 0x44ff88,  // tide — green
   vo: 0xff4466,  // void — red
-  om: 0xff8844,  // omen — orange
-  cc: 0x6688ff,  // cooldown — blue
+  ac: 0x44ddff,  // automation — cyan
+  fr: 0xff8844,  // frenzy — orange
+  pw: 0xff66aa,  // power — pink
+  hv: 0x88ddff,  // harvest — light blue
 };
 
 function getBranchColor(nodeId: string): number {

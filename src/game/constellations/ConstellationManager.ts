@@ -1,7 +1,7 @@
 import { PopulationStats } from '../PopulationManager';
 import { SKILL_TREES, SkillTree, ConstellationBonuses, DEFAULT_BONUSES } from './ConstellationData';
 
-const STARTING_SOULS = 5;
+const STARTING_SOULS = 0;
 
 export class ConstellationManager {
   souls: number = STARTING_SOULS;

@@ -5,11 +5,10 @@ import { ConstellationManager } from '../constellations/ConstellationManager';
 import { DecorManager } from '../decor/DecorManager';
 import { Human } from '../objects/Human';
 import { SkillTreeUI } from '../objects/SkillTreeUI';
-import { CardHandUI } from '../objects/CardHandUI';
 import { JuiceEffects } from '../objects/JuiceEffects';
+import { AbilityUI } from '../abilities/AbilityUI';
 import { removeSplashScreen } from '../utils/utils';
 import { UIScene } from './UIScene';
-import { DeckManager } from '../cards/DeckManager';
 
 const SKY_COLORS: Record<GamePhase, number> = {
   [GamePhase.Night]: 0x0a0a1a,
@@ -22,10 +21,9 @@ export class MainScene extends CustomScene {
   gameManager!: GameManager;
   populationManager!: PopulationManager;
   constellationManager!: ConstellationManager;
-  deckManager!: DeckManager;
   decorManager!: DecorManager;
   private skillTreeUI!: SkillTreeUI;
-  private cardHandUI!: CardHandUI;
+  private abilityUI!: AbilityUI;
   private juiceEffects!: JuiceEffects;
   private decorContainer!: Phaser.GameObjects.Container;
   private endDayBtn!: Phaser.GameObjects.Text;
@@ -48,6 +46,11 @@ export class MainScene extends CustomScene {
   private clickCooldownTimer: number = 0;
   private cooldownBar!: Phaser.GameObjects.Rectangle;
   private cooldownBarBg!: Phaser.GameObjects.Rectangle;
+
+  // Ability timed effects
+  private chainJumpActive: boolean = false;
+  private soulHarvestActive: boolean = false;
+  private savedBirthRate: number = 0;
 
   constructor() {
     super('MainScene');
@@ -77,20 +80,6 @@ export class MainScene extends CustomScene {
       this.populationManager.stats,
     );
 
-    this.deckManager = new DeckManager(this.populationManager, this.gameManager);
-    this.deckManager.setSpawnWaveFn((count) => {
-      for (let i = 0; i < count; i++) {
-        this.spawnHuman(this.spawnX - i * this.tileSize * 1.5);
-      }
-    });
-    this.deckManager.setHumansOnScreenFn(() => this.getWalkingHumansCount());
-    this.deckManager.setHumansNearEdgeFn(() => this.getHumansNearEdge());
-    this.deckManager.setForceAllJumpFn(() => this.forceAllJump());
-    this.deckManager.setDecorCountFn(() => this.decorManager.getOccupiedCount());
-    this.deckManager.setInvertDecorFn(() => this.decorManager.invertEffects());
-    this.deckManager.setRevertDecorFn(() => this.decorManager.revertInversion());
-    this.deckManager.setBonusesFn(() => this.constellationManager.bonuses);
-
     // Decor system
     this.decorManager = new DecorManager(
       this.cliffEdgeX,
@@ -102,11 +91,6 @@ export class MainScene extends CustomScene {
 
     this.decorManager.setOnDecorPlaced((placed) => {
       this.addDecorSprite(placed.def.frameIndex, placed.slotIndex, placed.elevated);
-      // Vow of Fragility: decor pop ends the effect
-      if (this.deckManager.onDecorCallback) {
-        this.deckManager.onDecorCallback();
-        this.deckManager.onDecorCallback = null;
-      }
     });
 
     // Skill tree UI (night phase)
@@ -114,26 +98,15 @@ export class MainScene extends CustomScene {
       this.gameManager.skipPhase();
     });
 
-    // Card hand UI (day phase)
-    this.cardHandUI = new CardHandUI(this, this.deckManager);
+    // Ability UI (day phase)
+    this.abilityUI = new AbilityUI(
+      this,
+      () => this.constellationManager.bonuses,
+      (id) => this.executeAbility(id),
+    );
 
     // Juice effects
     this.juiceEffects = new JuiceEffects(this);
-
-    // Wire card play feedback + decor cost
-    this.deckManager.setOnCardPlayed((card) => {
-      this.juiceEffects.onCardPlayed(card.tier);
-      // Playing a card triggers decor spawns as a cost
-      const decorCost =
-        card.tier === 'common' ? 1 : card.tier === 'uncommon' ? 1 : card.tier === 'rare' ? 2 : 3; // legendary
-      this.decorManager.forceSpawn(decorCost);
-    });
-    this.deckManager.setOnPenaltyApplied(() => {
-      this.juiceEffects.onPenalty();
-    });
-    this.deckManager.setOnCardDropped(() => {
-      this.cardHandUI.refresh();
-    });
 
     this.uiScene = this.scene.get('UIScene') as UIScene;
     this.uiScene.setGameManager(this.gameManager);
@@ -160,10 +133,17 @@ export class MainScene extends CustomScene {
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
         this.clickCooldownTimer = 0;
+        this.chainJumpActive = false;
+        this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
       }
       if (phase === GamePhase.Sunset) {
         this.forceAllTurnBack();
+        // Restore birth rate if Silence was active
+        if (this.savedBirthRate > 0) {
+          this.populationManager.stats.birthRate = this.savedBirthRate;
+          this.savedBirthRate = 0;
+        }
       }
 
       // Show skill tree only during night
@@ -173,12 +153,12 @@ export class MainScene extends CustomScene {
         this.skillTreeUI.refresh();
       }
 
-      // Show card hand + end day button during Daytime
+      // Show abilities + end day button during Daytime
       const isDaytime = phase === GamePhase.Daytime;
-      this.cardHandUI.setVisible(isDaytime);
+      this.abilityUI.setVisible(isDaytime);
       this.endDayBtn.setVisible(isDaytime);
       if (isDaytime) {
-        this.cardHandUI.refresh();
+        this.abilityUI.refresh();
       }
 
       // Camera pan: night = scroll up to show constellation, day/sunset = normal
@@ -236,6 +216,47 @@ export class MainScene extends CustomScene {
     });
   }
 
+  // ── Ability execution ──
+
+  private executeAbility(id: string) {
+    switch (id) {
+      case 'void_call':
+        this.forceAllJump();
+        break;
+      case 'dark_wave':
+        for (let i = 0; i < 8; i++) {
+          this.spawnHuman(this.spawnX - i * this.tileSize * 1.5, true);
+        }
+        break;
+      case 'frenzy_pulse': {
+        const origSpeed = this.populationManager.stats.walkSpeed;
+        this.populationManager.stats.walkSpeed = Math.round(origSpeed * 3);
+        this.time.delayedCall(10_000, () => {
+          this.populationManager.stats.walkSpeed = origSpeed;
+        });
+        break;
+      }
+      case 'chain_of_souls':
+        this.chainJumpActive = true;
+        this.time.delayedCall(15_000, () => {
+          this.chainJumpActive = false;
+        });
+        break;
+      case 'silence':
+        this.savedBirthRate = this.populationManager.stats.birthRate;
+        this.populationManager.stats.birthRate = 0;
+        break;
+      case 'soul_harvest':
+        this.soulHarvestActive = true;
+        this.time.delayedCall(15_000, () => {
+          this.soulHarvestActive = false;
+        });
+        break;
+    }
+  }
+
+  // ── Decor sprites ──
+
   private addDecorSprite(frameIndex: number, slotIndex: number, elevated: boolean = false) {
     const scale = this.tileSize / 16;
     const x = slotIndex * this.tileSize;
@@ -251,28 +272,19 @@ export class MainScene extends CustomScene {
       ground.fillRect(hillX, baseY, hillW, this.tileSize);
       this.decorContainer.addAt(ground, 0);
 
-      const cornerFrame = 14 * 16 + 0; // frame(0, 14) — left corner, hills only
-      const edgeFrame = 14 * 16 + 1; // frame(1, 14) — straight edge
-      // Left corner
+      const cornerFrame = 14 * 16 + 0;
+      const edgeFrame = 14 * 16 + 1;
       this.decorContainer.add(
-        this.add
-          .image(hillX, baseY - this.tileSize, 'worldElement', cornerFrame)
-          .setOrigin(0, 0)
-          .setScale(scale),
+        this.add.image(hillX, baseY - this.tileSize, 'worldElement', cornerFrame)
+          .setOrigin(0, 0).setScale(scale),
       );
-      // Center edge
       this.decorContainer.add(
-        this.add
-          .image(hillX + this.tileSize, baseY - this.tileSize, 'worldElement', edgeFrame)
-          .setOrigin(0, 0)
-          .setScale(scale),
+        this.add.image(hillX + this.tileSize, baseY - this.tileSize, 'worldElement', edgeFrame)
+          .setOrigin(0, 0).setScale(scale),
       );
-      // Right edge (mirror the edge)
       this.decorContainer.add(
-        this.add
-          .image(hillX + this.tileSize * 2, baseY - this.tileSize, 'worldElement', edgeFrame)
-          .setOrigin(0, 0)
-          .setScale(scale),
+        this.add.image(hillX + this.tileSize * 2, baseY - this.tileSize, 'worldElement', edgeFrame)
+          .setOrigin(0, 0).setScale(scale),
       );
     }
 
@@ -282,7 +294,6 @@ export class MainScene extends CustomScene {
       .setScale(scale)
       .setAlpha(0);
 
-    // Pop-in animation
     this.tweens.add({
       targets: sprite,
       alpha: 1,
@@ -304,46 +315,41 @@ export class MainScene extends CustomScene {
     this.decorContainer.add(sprite);
   }
 
+  // ── Cliff rendering ──
+
   private drawCliff() {
     const g = this.add.graphics();
     g.fillStyle(0x222222);
     g.fillRect(0, this.groundY, this.cliffEdgeX - this.tileSize, this.canvasHeight - this.groundY);
 
     const scale = this.tileSize / 16;
-    const groundFrame = 14 * 16 + 1;  // frame(1, 14) — ground surface, tiled
-    const faceFrame = 15 * 16 + 1;    // frame(1, 15) — cliff face, tiled vertically
-    const cornerFrame = 15 * 16 + 2;  // frame(2, 15) — cliff corner (top-right)
+    const groundFrame = 14 * 16 + 1;
+    const faceFrame = 15 * 16 + 1;
+    const cornerFrame = 15 * 16 + 2;
 
-    // Ground surface along the top
-    for (let tx = 0; tx < this.cliffEdgeX -  this.tileSize; tx += this.tileSize) {
-      this.add
-        .image(tx, this.groundY - this.tileSize, 'worldElement', groundFrame)
-        .setOrigin(0, 0)
-        .setScale(scale);
+    for (let tx = 0; tx < this.cliffEdgeX - this.tileSize; tx += this.tileSize) {
+      this.add.image(tx, this.groundY - this.tileSize, 'worldElement', groundFrame)
+        .setOrigin(0, 0).setScale(scale);
     }
 
-    // Cliff corner at top-right
-    this.add
-      .image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
-      .setOrigin(1, 0)
-      .setScale(scale);
+    this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
+      .setOrigin(1, 0).setScale(scale);
 
-    // Cliff face going down from below the corner
     for (let ty = this.groundY + this.tileSize; ty < this.canvasHeight; ty += this.tileSize) {
-      this.add
-        .image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
-        .setOrigin(1, 0)
-        .setScale(scale);
+      this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
+        .setOrigin(1, 0).setScale(scale);
     }
   }
+
+  // ── Game loop ──
 
   update(time: number, delta: number) {
     if (this.runEnded) return;
 
     this.gameManager.update(delta);
-    this.deckManager.update(delta);
     this.decorManager.update(delta);
     this.juiceEffects.update(delta);
+    this.abilityUI.update(delta);
 
     // Win check
     if (this.populationManager.isExtinct()) {
@@ -351,22 +357,12 @@ export class MainScene extends CustomScene {
       return;
     }
 
-    // Lose check — only during Daytime with active auto-clickers
-    if (this.gameManager.getPhase() === GamePhase.Daytime) {
-      const dayDuration = this.gameManager.getDaytimeDuration();
-      const autoCount = this.constellationManager.bonuses.autoClickerCount;
-      if (this.populationManager.isDefeatInevitable(dayDuration, autoCount)) {
-        this.endRun('defeat');
-        return;
-      }
-    }
-
     // Auto-clicker spawns during Daytime
     if (this.gameManager.getPhase() === GamePhase.Daytime && !this.populationManager.isExtinct()) {
       const autoCount = this.constellationManager.bonuses.autoClickerCount;
       if (autoCount > 0) {
         this.autoClickTimer += delta;
-        const interval = this.populationManager.stats.spawnInterval;
+        const interval = this.populationManager.stats.clickCooldown;
         if (this.autoClickTimer >= interval) {
           this.autoClickTimer -= interval;
           for (let i = 0; i < autoCount; i++) {
@@ -381,8 +377,8 @@ export class MainScene extends CustomScene {
       this.clickCooldownTimer = Math.max(0, this.clickCooldownTimer - delta);
       const cooldown = this.populationManager.stats.clickCooldown;
       const progress = this.clickCooldownTimer / cooldown;
-      const barWidth = this.tileSize * 4;
-      this.cooldownBar.width = barWidth * progress;
+      const bw = this.tileSize * 4;
+      this.cooldownBar.width = bw * progress;
       this.cooldownBarBg.setVisible(true);
       this.cooldownBar.setVisible(true);
     } else {
@@ -401,28 +397,20 @@ export class MainScene extends CustomScene {
     }
   }
 
-  /** Spawn one human plus optional drag/override extras. */
-  private doSpawn(overrideX?: number) {
+  // ── Spawn logic ──
+
+  private doSpawn(overrideX?: number, forceJump = false) {
     if (this.populationManager.population <= 0) return;
-    this.spawnHuman(overrideX);
-    if (this.deckManager.nextSpawnDragOverride > 0) {
-      const extra = this.deckManager.nextSpawnDragOverride;
-      this.deckManager.nextSpawnDragOverride = -1;
-      for (let i = 0; i < extra; i++) this.spawnHuman();
-    } else if (this.populationManager.shouldSpawnExtra()) {
-      this.spawnHuman();
+    this.spawnHuman(overrideX, forceJump);
+    if (this.populationManager.shouldSpawnExtra()) {
+      this.spawnHuman(undefined, forceJump);
     }
   }
 
-  private spawnHuman(overrideX?: number) {
+  private spawnHuman(overrideX?: number, forceJump = false) {
     if (this.populationManager.population <= 0) return;
 
-    // Black Tide: forceJumpRemaining overrides turn-back
-    let shouldTurnBack = this.populationManager.shouldTurnBack();
-    if (this.deckManager.forceJumpRemaining > 0) {
-      shouldTurnBack = false;
-      this.deckManager.forceJumpRemaining--;
-    }
+    const shouldTurnBack = forceJump ? false : this.populationManager.shouldTurnBack();
 
     const human = new Human(
       this,
@@ -433,17 +421,13 @@ export class MainScene extends CustomScene {
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
-        this.constellationManager.onHumanKilled();
+        // Soul gain with multiplier
+        const soulGain = Math.floor(this.constellationManager.bonuses.soulMultiplier * (this.soulHarvestActive ? 2 : 1));
+        for (let s = 0; s < soulGain; s++) this.constellationManager.onHumanKilled();
         this.juiceEffects.onJump(jumpX, jumpY);
-        this.deckManager.tryDropCard(this.constellationManager.bonuses.cardDropRate);
 
-        // Cursed Procession: chain spawn on jump
-        if (this.deckManager.chainSpawnActive) {
-          this.spawnHuman();
-        }
-
-        // The Last Sermon: cascade — force nearest walking human to also jump
-        if (this.deckManager.cascadeJumpActive) {
+        // Chain of Souls ability
+        if (this.chainJumpActive) {
           this.cascadeToNearest(jumpX);
         }
       },
@@ -451,17 +435,12 @@ export class MainScene extends CustomScene {
     );
     human.setOnFellOff((fx) => {
       this.juiceEffects.spawnSoul(fx, this.canvasHeight);
+      this.juiceEffects.onDeath();
     });
     this.humans.push(human);
   }
 
-  private getWalkingHumansCount(): number {
-    return this.humans.filter((h) => h.isWalking()).length;
-  }
-
-  private getHumansNearEdge(): number {
-    return this.humans.filter((h) => h.isWalking() && h.getProgress() > 0.6).length;
-  }
+  // ── Helpers ──
 
   private forceAllJump() {
     const walking = this.humans.filter((h) => h.isWalking());
