@@ -52,6 +52,13 @@ export class MainScene extends CustomScene {
   private soulHarvestActive: boolean = false;
   private savedBirthRate: number = 0;
 
+  // Camera drag
+  private isDragging: boolean = false;
+  private dragStartX: number = 0;
+  private dragStartY: number = 0;
+  private camStartX: number = 0;
+  private camStartY: number = 0;
+
   constructor() {
     super('MainScene');
   }
@@ -112,7 +119,7 @@ export class MainScene extends CustomScene {
     this.uiScene.setGameManager(this.gameManager);
     this.uiScene.setPopulationManager(this.populationManager);
 
-    const nightScrollY = this.groundY - this.canvasHeight + this.tileSize;
+    // nightScrollY will be computed dynamically from root position
 
     // End Day button (visible during Daytime only)
     this.endDayBtn = this.add
@@ -161,18 +168,25 @@ export class MainScene extends CustomScene {
         this.abilityUI.refresh();
       }
 
-      // Camera pan: night = scroll up to show constellation, day/sunset = normal
-      const targetScrollY = isNight ? nightScrollY : 0;
-      this.tweens.add({
-        targets: this.cameras.main,
-        scrollY: targetScrollY,
-        duration: 800,
-        ease: 'Power2',
-        onUpdate: () => {
-          this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
-        },
-      });
-      this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
+      // Camera pan: night = center on root star, day = back to origin
+      if (isNight) {
+        const rootPos = this.skillTreeUI.getRootWorldPos();
+        this.tweens.add({
+          targets: this.cameras.main,
+          scrollX: rootPos.x - this.canvasWidth / 2,
+          scrollY: rootPos.y - this.canvasHeight / 2,
+          duration: 800,
+          ease: 'Power2',
+        });
+      } else {
+        this.tweens.add({
+          targets: this.cameras.main,
+          scrollX: 0,
+          scrollY: 0,
+          duration: 800,
+          ease: 'Power2',
+        });
+      }
     });
 
     // Start in daytime
@@ -194,13 +208,44 @@ export class MainScene extends CustomScene {
       .setDepth(151)
       .setVisible(false);
 
-    // Click on cliff during daytime = spawn 1 human
-    this.input.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    // Click / drag handling
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
       if (this.runEnded) return;
+
+      if (this.gameManager.getPhase() === GamePhase.Night) {
+        // Start drag for camera pan
+        this.isDragging = true;
+        this.dragStartX = pointer.x;
+        this.dragStartY = pointer.y;
+        this.camStartX = this.cameras.main.scrollX;
+        this.camStartY = this.cameras.main.scrollY;
+        return;
+      }
+
       if (this.gameManager.getPhase() !== GamePhase.Daytime) return;
       if (this.clickCooldownTimer > 0) return;
       this.doSpawn();
       this.clickCooldownTimer = this.populationManager.stats.clickCooldown;
+    });
+
+    this.input.on(Phaser.Input.Events.POINTER_MOVE, (pointer: Phaser.Input.Pointer) => {
+      if (!this.isDragging || !pointer.isDown) return;
+      const dx = this.dragStartX - pointer.x;
+      const dy = this.dragStartY - pointer.y;
+      this.cameras.main.scrollX = this.camStartX + dx;
+      this.cameras.main.scrollY = this.camStartY + dy;
+
+      // Clamp camera bounds — no peeking below the cliff, constellation extends upward
+      const maxScrollY = this.groundY - this.canvasHeight + this.tileSize;
+      const minScrollY = -this.canvasHeight * 4;
+      const maxScrollX = this.canvasWidth * 0.8;
+      const minScrollX = -this.canvasWidth * 0.8;
+      this.cameras.main.scrollX = Math.max(minScrollX, Math.min(maxScrollX, this.cameras.main.scrollX));
+      this.cameras.main.scrollY = Math.max(minScrollY, Math.min(maxScrollY, this.cameras.main.scrollY));
+    });
+
+    this.input.on(Phaser.Input.Events.POINTER_UP, () => {
+      this.isDragging = false;
     });
 
     // Debug shortcuts (Space = skip phase, F = fast-forward 10s)
@@ -263,28 +308,36 @@ export class MainScene extends CustomScene {
     const baseY = this.groundY - this.tileSize;
     const y = elevated ? baseY - this.tileSize : baseY;
 
-    // If elevated, draw a 3-tile-wide hill with sprites
+    // If elevated, draw a 3-tile-wide hill using same sprites as cliff
     if (elevated) {
       const hillX = x - this.tileSize;
       const hillW = this.tileSize * 3;
+      const groundFrame = 14 * 16 + 1;  // same as cliff ground surface
+      const faceFrame = 15 * 16 + 1;    // same as cliff face
+      const hillAlpha = 0.7;
+
+      // Hill body (fill)
       const ground = this.add.graphics();
-      ground.fillStyle(0x3a3a2a);
+      ground.fillStyle(0x222222);
       ground.fillRect(hillX, baseY, hillW, this.tileSize);
       this.decorContainer.addAt(ground, 0);
 
-      const cornerFrame = 14 * 16 + 0;
-      const edgeFrame = 14 * 16 + 1;
+      // Ground surface on top of hill (3 tiles)
+      for (let i = 0; i < 3; i++) {
+        this.decorContainer.add(
+          this.add.image(hillX + i * this.tileSize, baseY - this.tileSize, 'worldElement', groundFrame)
+            .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha),
+        );
+      }
+
+      // Face tiles on left and right sides of the hill
       this.decorContainer.add(
-        this.add.image(hillX, baseY - this.tileSize, 'worldElement', cornerFrame)
-          .setOrigin(0, 0).setScale(scale),
+        this.add.image(hillX, baseY, 'worldElement', faceFrame)
+          .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha),
       );
       this.decorContainer.add(
-        this.add.image(hillX + this.tileSize, baseY - this.tileSize, 'worldElement', edgeFrame)
-          .setOrigin(0, 0).setScale(scale),
-      );
-      this.decorContainer.add(
-        this.add.image(hillX + this.tileSize * 2, baseY - this.tileSize, 'worldElement', edgeFrame)
-          .setOrigin(0, 0).setScale(scale),
+        this.add.image(hillX + this.tileSize * 2, baseY, 'worldElement', faceFrame)
+          .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha).setFlipX(true),
       );
     }
 
@@ -320,7 +373,7 @@ export class MainScene extends CustomScene {
   private drawCliff() {
     const g = this.add.graphics();
     g.fillStyle(0x222222);
-    g.fillRect(0, this.groundY, this.cliffEdgeX - this.tileSize, this.canvasHeight - this.groundY);
+    g.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.tileSize, this.canvasHeight - this.groundY);
 
     const scale = this.tileSize / 16;
     const groundFrame = 14 * 16 + 1;

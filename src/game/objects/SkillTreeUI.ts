@@ -1,6 +1,6 @@
 import { ConstellationManager } from '../constellations/ConstellationManager';
 import { SkillTree } from '../constellations/ConstellationData';
-import { drawDashedLine } from '../utils/utils';
+import { drawDashedLine, createUIPanel } from '../utils/utils';
 
 const LOCKED_ALPHA = 0.18;
 
@@ -55,19 +55,21 @@ export class SkillTreeUI {
 
   private budgetText!: Phaser.GameObjects.Text;
   private endNightBtn!: Phaser.GameObjects.Text;
+  private uiOverlay!: Phaser.GameObjects.Container;
   private treeContainers: Phaser.GameObjects.Container[] = [];
   private tooltipContainer!: Phaser.GameObjects.Container;
   private tooltipBg!: Phaser.GameObjects.Graphics;
   private tooltipName!: Phaser.GameObjects.Text;
   private tooltipDesc!: Phaser.GameObjects.Text;
   private tooltipCost!: Phaser.GameObjects.Text;
+  private unlockBtn!: Phaser.GameObjects.Text;
+  private selectedNode: { treeId: string; nodeIndex: number } | null = null;
 
   private baseX: number;
   private baseY: number;
   private spacing: number;
   private constellationW: number;
   private constellationH: number;
-  private dayOffsetY: number;
 
   constructor(scene: Phaser.Scene, constellationMgr: ConstellationManager, onEndNight: () => void) {
     this.scene = scene;
@@ -78,22 +80,23 @@ export class SkillTreeUI {
     const tileSize = cam.height / 18;
     const trees = constellationMgr.getTrees();
 
-    // Use most of the screen for the constellation
-    this.constellationW = cam.width * 0.85;
-    this.constellationH = cam.height - tileSize * 5; // top margin + bottom button area
+    // Constellation in WORLD space — much larger than screen, camera pans to explore
+    this.constellationW = cam.width * 2.5;
+    this.constellationH = cam.height * 2.5;
     this.spacing = cam.width / (trees.length + 1);
-    this.baseX = this.spacing;
-    this.baseY = tileSize * 1.5 + this.constellationH / 2;
+    this.baseX = cam.width / 2; // center horizontally
 
-    // During day (camera scrollY=0), offset so root node sits just above groundY
+    // Root sits just above the cliff in world coords
     const groundY = cam.height * 0.4;
-    const rootScreenY = this.baseY + 0.82 * (this.constellationH / 2);
-    this.dayOffsetY = groundY - tileSize * 2 - rootScreenY;
+    this.baseY = groundY - tileSize * 2;
 
     this.container = scene.add.container(0, 0);
 
     // Budget text
     const fontSize = Math.round(tileSize * 0.55);
+    // UI overlay — fixed to screen (scrollFactor 0), not in world container
+    this.uiOverlay = scene.add.container(0, 0).setScrollFactor(0).setDepth(180).setVisible(false);
+
     this.budgetText = scene.add
       .text(cam.width / 2, tileSize * 0.5, '', {
         fontSize: `${fontSize}px`,
@@ -101,8 +104,9 @@ export class SkillTreeUI {
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
-      .setAlpha(0.9);
-    this.container.add(this.budgetText);
+      .setAlpha(0.9)
+      .setScrollFactor(0);
+    this.uiOverlay.add(this.budgetText);
 
     // End Night button
     const btnY = cam.height - tileSize * 1.2;
@@ -113,6 +117,7 @@ export class SkillTreeUI {
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
+      .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
     this.endNightBtn.on(Phaser.Input.Events.POINTER_OVER, () =>
@@ -122,33 +127,53 @@ export class SkillTreeUI {
       this.endNightBtn.setColor('#aaccff'),
     );
     this.endNightBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.onEndNight());
-    this.container.add(this.endNightBtn);
+    this.uiOverlay.add(this.endNightBtn);
 
-    // Tooltip (shared, moves on hover)
-    this.tooltipContainer = scene.add.container(0, 0).setVisible(false).setDepth(200);
+    // Tooltip (shared, moves on click)
+    this.tooltipContainer = scene.add.container(0, 0).setVisible(false).setDepth(200).setScrollFactor(0);
     this.tooltipBg = scene.add.graphics();
-    const ttFont = Math.round(tileSize * 0.32);
+    const ttFont = Math.round(tileSize * 0.45);
+    const ttSmall = Math.round(ttFont * 0.8);
+    const lineH = ttFont * 1.6;
     this.tooltipName = scene.add.text(0, 0, '', {
       fontSize: `${ttFont}px`,
       color: '#ffffff',
       fontFamily: 'PixelSleigh',
-      fontStyle: 'bold',
     });
-    this.tooltipDesc = scene.add.text(0, ttFont * 1.4, '', {
-      fontSize: `${Math.round(ttFont * 0.85)}px`,
-      color: '#aaaaaa',
+    this.tooltipDesc = scene.add.text(0, lineH, '', {
+      fontSize: `${ttSmall}px`,
+      color: '#cccccc',
       fontFamily: 'PixelSleigh',
     });
-    this.tooltipCost = scene.add.text(0, ttFont * 2.8, '', {
-      fontSize: `${Math.round(ttFont * 0.85)}px`,
+    this.tooltipCost = scene.add.text(0, lineH * 2, '', {
+      fontSize: `${ttSmall}px`,
       color: '#ffcc44',
       fontFamily: 'PixelSleigh',
+    });
+    this.unlockBtn = scene.add.text(0, lineH * 3.2, '[ Unlock ]', {
+      fontSize: `${ttFont}px`,
+      color: '#44ff88',
+      fontFamily: 'PixelSleigh',
+    })
+      .setInteractive({ useHandCursor: true })
+      .setVisible(false);
+    this.unlockBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.unlockBtn.setColor('#ffffff'));
+    this.unlockBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.unlockBtn.setColor('#44ff88'));
+    this.unlockBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      if (!this.selectedNode) return;
+      const success = this.constellationMgr.unlockNode(this.selectedNode.treeId, this.selectedNode.nodeIndex);
+      if (success) {
+        this.selectedNode = null;
+        this.tooltipContainer.setVisible(false);
+        this.refresh();
+      }
     });
     this.tooltipContainer.add([
       this.tooltipBg,
       this.tooltipName,
       this.tooltipDesc,
       this.tooltipCost,
+      this.unlockBtn,
     ]);
     this.container.add(this.tooltipContainer);
 
@@ -159,18 +184,23 @@ export class SkillTreeUI {
 
   setVisible(visible: boolean) {
     this.isNight = visible;
-    // Always keep the container visible — day mode shows unlocked nodes at low alpha
+    // Always keep the constellation container visible — day mode shows unlocked nodes at low alpha
     this.container.setVisible(true);
-    this.budgetText.setVisible(visible);
-    this.endNightBtn.setVisible(visible);
+    // UI overlay (budget, end night) only during night
+    this.uiOverlay.setVisible(visible);
     if (!visible) this.tooltipContainer.setVisible(false);
-    // Refresh to apply day/night alpha
     this.refresh();
   }
 
-  /** Reposition the container in world space so it stays screen-fixed despite camera scroll. */
-  setCameraOffset(scrollY: number) {
-    this.container.setY(this.isNight ? scrollY : this.dayOffsetY);
+  /** Returns the world position of the root node for camera centering. */
+  getRootWorldPos(): { x: number; y: number } {
+    const trees = this.constellationMgr.getTrees();
+    if (trees.length === 0) return { x: this.baseX, y: this.baseY };
+    const tree = trees[0];
+    const cx = this.baseX;
+    const cy = this.baseY;
+    const rootPos = this.nodeScreenPos(tree, 0, cx, cy);
+    return rootPos;
   }
 
   refresh() {
@@ -196,9 +226,13 @@ export class SkillTreeUI {
     cy: number,
   ): { x: number; y: number } {
     const node = tree.nodes[nodeIndex];
+    // cy is the BOTTOM (root level, just above cliff).
+    // All nodes go UP from there. We find the max y in data (root=0)
+    // and offset so that max y maps to cy, everything else goes above.
+    const maxY = Math.max(...tree.nodes.map(n => n.y));
     return {
       x: cx + node.x * (this.constellationW / 2),
-      y: cy + node.y * (this.constellationH / 2),
+      y: cy + (node.y - maxY) * (this.constellationH / 2),
     };
   }
 
@@ -307,25 +341,12 @@ export class SkillTreeUI {
         const hitRadius = Math.max(radius * 2.5, 16);
         const hitZone = this.scene.add
           .circle(pos.x, pos.y, hitRadius)
-          .setInteractive({ useHandCursor: canUnlock })
+          .setInteractive({ useHandCursor: true })
           .setAlpha(0.001);
 
-        hitZone.on(Phaser.Input.Events.POINTER_OVER, () => {
-          this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, branchColor);
+        hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+          this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, canUnlock, branchColor, tree.id, nodeIndex);
         });
-        hitZone.on(Phaser.Input.Events.POINTER_OUT, () => {
-          this.tooltipContainer.setVisible(false);
-        });
-
-        if (canUnlock) {
-          hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
-            const success = this.constellationMgr.unlockNode(tree.id, nodeIndex);
-            if (success) {
-              this.tooltipContainer.setVisible(false);
-              this.refresh();
-            }
-          });
-        }
 
         container.add(hitZone);
       }
@@ -341,9 +362,12 @@ export class SkillTreeUI {
     y: number,
     node: { name: string; description: string; cost: number; id: string },
     unlocked: boolean,
+    canUnlock: boolean,
     branchColor: number,
+    treeId: string,
+    nodeIndex: number,
   ) {
-    const pad = 10;
+    const pad = Math.round(this.scene.cameras.main.height / 18 * 0.4);
     const colorStr = '#' + branchColor.toString(16).padStart(6, '0');
     this.tooltipName.setText(node.name).setColor(colorStr);
     this.tooltipDesc.setText(node.description);
@@ -351,21 +375,32 @@ export class SkillTreeUI {
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
+    // Show unlock button only if affordable
+    this.unlockBtn.setVisible(canUnlock);
+    this.selectedNode = canUnlock ? { treeId, nodeIndex } : null;
+
+    const bottomEl = canUnlock ? this.unlockBtn : this.tooltipCost;
     const w =
-      Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width) + pad * 2;
-    const h = this.tooltipCost.y + this.tooltipCost.height + pad;
+      Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width, canUnlock ? this.unlockBtn.width : 0) + pad * 2;
+    const h = bottomEl.y + bottomEl.height + pad;
+    const pu = this.scene.cameras.main.height / 288;
 
     this.tooltipBg.clear();
-    // Dark panel with border
-    this.tooltipBg.fillStyle(0x080810, 0.92);
-    this.tooltipBg.fillRoundedRect(-pad, -pad, w, h, 4);
-    this.tooltipBg.lineStyle(1, branchColor, 0.3);
-    this.tooltipBg.strokeRoundedRect(-pad, -pad, w, h, 4);
+    createUIPanel(
+      this.tooltipBg,
+      -pad, -pad, w, h,
+      pu,
+      branchColor, 0.6,
+      { color: 0x080810, alpha: 0.92 },
+    );
 
-    // Clamp to screen
+    // Convert world coords to screen coords (tooltip has scrollFactor 0)
     const cam = this.scene.cameras.main;
-    let tx = x - w / 2 + pad;
-    let ty = y - h;
+    const screenX = x - cam.scrollX;
+    const screenY = y - cam.scrollY;
+
+    let tx = screenX - w / 2 + pad;
+    let ty = screenY - h;
     tx = Math.max(4, Math.min(cam.width - w - 4, tx));
     ty = Math.max(4, ty);
 

@@ -316,3 +316,4 @@ export function drawRoundedRect(
   ctx.closePath();
   style === 'fill' ? ctx.fill() : ctx.stroke();
 }
+

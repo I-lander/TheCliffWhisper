@@ -493,6 +493,78 @@ function buildEdges(nodes: SkillNode[], edgeIds: [string, string][]): [number, n
     .filter(([a, b]) => a !== undefined && b !== undefined);
 }
 
+// Force-directed layout: repel overlapping nodes + attract connected nodes
+function relaxLayout(
+  nodes: SkillNode[],
+  edgeIds: [string, string][],
+  minDist: number,
+  idealEdgeDist: number,
+  iterations: number,
+) {
+  const idMap = new Map<string, number>();
+  nodes.forEach((n, i) => idMap.set(n.id, i));
+
+  const edgePairs = edgeIds
+    .map(([a, b]) => [idMap.get(a)!, idMap.get(b)!] as [number, number])
+    .filter(([a, b]) => a !== undefined && b !== undefined);
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const damping = 1 - iter / iterations * 0.5; // cool down over time
+
+    // Repulsion: push apart ALL node pairs that are too close
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === 'root') continue;
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (nodes[j].id === 'root') continue;
+        const dx = nodes[j].x - nodes[i].x;
+        const dy = nodes[j].y - nodes[i].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist && dist > 0.001) {
+          const force = (minDist - dist) * 0.3 * damping;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          nodes[i].x -= nx * force;
+          nodes[i].y -= ny * force;
+          nodes[j].x += nx * force;
+          nodes[j].y += ny * force;
+        }
+      }
+    }
+
+    // Attraction: pull connected nodes toward ideal edge distance (stronger force)
+    for (const [a, b] of edgePairs) {
+      if (nodes[a].id === 'root' || nodes[b].id === 'root') continue;
+      const dx = nodes[b].x - nodes[a].x;
+      const dy = nodes[b].y - nodes[a].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > idealEdgeDist && dist > 0.001) {
+        const force = (dist - idealEdgeDist) * 0.35 * damping;
+        const nx = dx / dist;
+        const ny = dy / dist;
+        nodes[a].x += nx * force;
+        nodes[a].y += ny * force;
+        nodes[b].x -= nx * force;
+        nodes[b].y -= ny * force;
+      }
+    }
+
+    // Clamp to bounds
+    for (const n of nodes) {
+      if (n.id === 'root') continue;
+      n.x = Math.max(-0.95, Math.min(0.95, n.x));
+      n.y = Math.max(-0.95, Math.min(0.95, n.y));
+    }
+  }
+
+  // Round to 2 decimals
+  for (const n of nodes) {
+    n.x = Math.round(n.x * 100) / 100;
+    n.y = Math.round(n.y * 100) / 100;
+  }
+}
+
+relaxLayout(NODES, EDGE_IDS, 0.11, 0.15, 120);
+
 const TREE: SkillTree = {
   id: 'whisper',
   name: 'The Ancient God',
