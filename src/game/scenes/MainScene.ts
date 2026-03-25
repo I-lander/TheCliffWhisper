@@ -437,6 +437,9 @@ export class MainScene extends CustomScene {
       },
       () => this.populationManager.onHumanTurnedBack(),
     );
+    human.setOnFellOff((fx) => {
+      this.juiceEffects.spawnSoul(fx, this.canvasHeight);
+    });
     this.humans.push(human);
   }
 

@@ -20,6 +20,40 @@ export class JuiceEffects {
     this.scene.cameras.main.shake(60, 0.002);
   }
 
+  spawnSoul(x: number, y: number) {
+    const tileSize = this.scene.cameras.main.height / 18;
+    const scale = tileSize / 16;
+    const soul = this.scene.add
+      .image(x, y, 'soul')
+      .setScale(scale)
+      .setDepth(50);
+
+    // Tadpole-like swim: wiggle rotation while rising
+    const duration = 4000 + Math.random() * 1500;
+    const driftX = (Math.random() - 0.5) * tileSize * 3;
+
+    // Wiggle angle like a tadpole swimming upward
+    this.scene.tweens.add({
+      targets: soul,
+      angle: { from: -20, to: 20 },
+      duration: 400 + Math.random() * 150,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // Rise to the sky + fade out
+    this.scene.tweens.add({
+      targets: soul,
+      x: x + driftX,
+      y: y - tileSize * 14,
+      alpha: 0,
+      duration,
+      ease: 'Power1',
+      onComplete: () => soul.destroy(),
+    });
+  }
+
   onCardPlayed(tier: string) {
     let flashAlpha = 0.1;
     let shakeDuration = 100;

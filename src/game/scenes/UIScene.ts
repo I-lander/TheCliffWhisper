@@ -20,9 +20,9 @@ export class UIScene extends CustomScene {
   // Top-right: defeat threshold
   private thresholdText!: Phaser.GameObjects.Text;
 
-  // Bottom-left: daily stats + dark faith
+  // Bottom-left: daily stats + souls
   private dailyStatsText!: Phaser.GameObjects.Text;
-  private darkFaithText!: Phaser.GameObjects.Text;
+  private soulsText!: Phaser.GameObjects.Text;
 
   // Top-center: day progress bar
   private progressBarBg!: Phaser.GameObjects.Graphics;
@@ -32,8 +32,6 @@ export class UIScene extends CustomScene {
   private progressBarX: number = 0;
   private progressBarY: number = 0;
 
-  // Center: night summary
-  private summaryText!: Phaser.GameObjects.Text;
 
   constructor() {
     super('UIScene');
@@ -119,8 +117,8 @@ export class UIScene extends CustomScene {
       .setOrigin(0, 1)
       .setAlpha(0.6);
 
-    // Bottom-left: dark faith counter (above daily stats)
-    this.darkFaithText = this.add
+    // Bottom-left: souls counter (above daily stats)
+    this.soulsText = this.add
       .text(padding, this.cameras.main.height - padding - smallFontSize * 1.5, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaccff',
@@ -145,19 +143,6 @@ export class UIScene extends CustomScene {
     );
     this.progressBarFill = this.add.graphics();
 
-    // Center: night summary (hidden by default)
-    const cx = this.cameras.main.width / 2;
-    const cy = this.cameras.main.height / 2;
-    this.summaryText = this.add
-      .text(cx, cy, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#cccccc',
-        fontFamily: 'monospace',
-        align: 'center',
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setDepth(10);
   }
 
   setGameManager(gm: GameManager) {
@@ -196,8 +181,8 @@ export class UIScene extends CustomScene {
     const { jumped, turnedBack } = this.populationManager;
     this.dailyStatsText.setText(`Jumped: ${jumped}  Turned back: ${turnedBack}`);
 
-    const darkFaith = this.mainScene.constellationManager.darkFaith;
-    this.darkFaithText.setText(`Dark Faith: ${darkFaith}`);
+    const souls = this.mainScene.constellationManager.souls;
+    this.soulsText.setText(`Souls: ${souls}`);
 
     // Progress bar — visible only during Daytime
     this.progressBarFill.clear();
@@ -225,18 +210,5 @@ export class UIScene extends CustomScene {
       this.progressBarBg.setAlpha(0);
     }
 
-    // Night summary
-    if (phase === GamePhase.Night && day > 1) {
-      const summary = this.populationManager.getDaySummary();
-      this.summaryText.setText(
-        `-- Day ${day - 1} Summary --\n` +
-          `Jumped: ${summary.jumped}\n` +
-          `Turned back: ${summary.turnedBack}\n` +
-          `Born: ${summary.born}`,
-      );
-      this.summaryText.setAlpha(0.8);
-    } else {
-      this.summaryText.setAlpha(0);
-    }
   }
 }

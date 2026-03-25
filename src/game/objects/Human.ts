@@ -29,6 +29,7 @@ export class Human extends Phaser.GameObjects.Sprite {
 
   private onJumped: (x: number, y: number) => void;
   private onTurnedBack: () => void;
+  private onFellOff: ((x: number) => void) | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -145,6 +146,7 @@ export class Human extends Phaser.GameObjects.Sprite {
 
         if (this.y > this.scene.cameras.main.height + 50) {
           this.state = HumanState.Gone;
+          if (this.onFellOff) this.onFellOff(this.x);
         }
         break;
     }
@@ -181,6 +183,10 @@ export class Human extends Phaser.GameObjects.Sprite {
 
   getProgress(): number {
     return this.x / this.cliffEdgeX;
+  }
+
+  setOnFellOff(cb: (x: number) => void) {
+    this.onFellOff = cb;
   }
 
   isGone(): boolean {

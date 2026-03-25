@@ -2,11 +2,11 @@ import { GameManager, GamePhase } from '../GameManager';
 import { PopulationManager, PopulationStats } from '../PopulationManager';
 import { SKILL_TREES, SkillTree, ConstellationBonuses, DEFAULT_BONUSES } from './ConstellationData';
 
-const STARTING_DARK_FAITH = 5;
+const STARTING_SOULS = 5;
 
 export class ConstellationManager {
-  darkFaith: number = STARTING_DARK_FAITH;
-  darkFaithEarnedLastDay: number = 0;
+  souls: number = STARTING_SOULS;
+  soulsEarnedLastDay: number = 0;
   unlockedNodes: Set<string> = new Set();
   bonuses: ConstellationBonuses = { ...DEFAULT_BONUSES };
 
@@ -22,18 +22,18 @@ export class ConstellationManager {
     this.stats = stats;
     this.populationManager = populationManager;
 
-    // Grant Dark Faith at the start of each night: 1 per human jumped the previous day
+    // Grant souls at the start of each night: 1 per human jumped the previous day
     gameManager.onPhaseChange((phase) => {
       if (phase === GamePhase.Night) {
-        this.grantDarkFaith();
+        this.grantSouls();
       }
     });
   }
 
-  private grantDarkFaith() {
+  private grantSouls() {
     const earned = this.populationManager.jumped;
-    this.darkFaithEarnedLastDay = earned;
-    this.darkFaith += earned;
+    this.soulsEarnedLastDay = earned;
+    this.souls += earned;
   }
 
   getTrees(): SkillTree[] {
@@ -50,7 +50,7 @@ export class ConstellationManager {
 
     const node = tree.nodes[nodeIndex];
     if (this.unlockedNodes.has(node.id)) return false;
-    if (this.darkFaith < node.cost) return false;
+    if (this.souls < node.cost) return false;
 
     // Root node (index 0) has no prerequisite
     if (nodeIndex === 0) return true;
@@ -69,7 +69,7 @@ export class ConstellationManager {
     const tree = this.trees.find((t) => t.id === treeId)!;
     const node = tree.nodes[nodeIndex];
 
-    this.darkFaith -= node.cost;
+    this.souls -= node.cost;
     this.unlockedNodes.add(node.id);
     node.apply(this.stats, this.bonuses);
 

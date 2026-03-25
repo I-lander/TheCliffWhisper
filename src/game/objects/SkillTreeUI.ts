@@ -382,7 +382,7 @@ export class SkillTreeUI {
     const colorStr = '#' + branchColor.toString(16).padStart(6, '0');
     this.tooltipName.setText(node.name).setColor(colorStr);
     this.tooltipDesc.setText(node.description);
-    this.tooltipCost.setText(unlocked ? 'Unlocked' : `Cost: ${node.cost} faith`);
+    this.tooltipCost.setText(unlocked ? 'Unlocked' : `Cost: ${node.cost} souls`);
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
@@ -409,8 +409,6 @@ export class SkillTreeUI {
   }
 
   private updateBudget() {
-    const available = this.constellationMgr.darkFaith;
-    const earned = this.constellationMgr.darkFaithEarnedLastDay;
-    this.budgetText.setText(`Dark Faith: ${available}  (earned last day: ${earned})`);
+    this.budgetText.setText(`Souls: ${this.constellationMgr.souls}`);
   }
 }

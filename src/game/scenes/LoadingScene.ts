@@ -13,6 +13,7 @@ export class LoadingScene extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16,
     });
+    this.load.image('soul', './assets/images/soul.png');
   }
 
   async create() {
