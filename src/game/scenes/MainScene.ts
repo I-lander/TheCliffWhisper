@@ -12,7 +12,7 @@ import { UIScene } from './UIScene';
 
 const SKY_COLORS: Record<GamePhase, number> = {
   [GamePhase.Night]: 0x0a0a1a,
-  [GamePhase.Daytime]: 0x2a2a4a,
+  [GamePhase.Daytime]: 0x424f66,
   [GamePhase.Sunset]: 0x1a1020,
 };
 
