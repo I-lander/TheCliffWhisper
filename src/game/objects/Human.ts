@@ -60,9 +60,9 @@ export class Human extends Phaser.GameObjects.Sprite {
     this.turnBackX = startX + (cliffEdgeX - startX) * (0.3 + Math.random() * 0.5);
 
     // Walk animation: bob + sway, speed tied to walk speed
-    this.walkBobAmount = 1.5 + Math.random() * 1.5;
+    this.walkBobAmount = 0.8 + Math.random() * 0.7;
     this.walkTime = Math.random() * Math.PI * 2; // desync between humans
-    this.walkAnimSpeed = 6 + (this.walkSpeed / 50); // faster walk = faster anim
+    this.walkAnimSpeed = 14 + (this.walkSpeed / 30); // faster walk = faster anim
     this.baseScaleX = this.scaleX;
 
     scene.add.existing(this);
@@ -86,7 +86,8 @@ export class Human extends Phaser.GameObjects.Sprite {
           break;
         }
 
-        if (this.x >= this.cliffEdgeX) {
+        const tileSize = this.scene.cameras.main.height / 18;
+        if (this.x >= this.cliffEdgeX - tileSize / 2) {
           this.startDive();
           this.onJumped(this.x, this.y);
         }
@@ -153,8 +154,8 @@ export class Human extends Phaser.GameObjects.Sprite {
     this.state = HumanState.Diving;
 
     // Random dive parameters for variation
-    const baseJumpX = 20 + Math.random() * 80;   // horizontal distance: 20-100px
-    const baseJumpY = -120 - Math.random() * 80;  // upward impulse: -120 to -200
+    const baseJumpX = 60 + Math.random() * 140;   // horizontal distance: 60-200px
+    const baseJumpY = -150 - Math.random() * 100;  // upward impulse: -150 to -250
 
     this.diveVelocityX = baseJumpX;
     this.diveVelocityY = baseJumpY;

@@ -140,7 +140,7 @@ export class MainScene extends CustomScene {
     this.uiScene.setGameManager(this.gameManager);
     this.uiScene.setPopulationManager(this.populationManager);
 
-    const nightScrollY = -this.canvasHeight * 0.35;
+    const nightScrollY = this.groundY - this.canvasHeight + this.tileSize;
 
     this.gameManager.onPhaseChange((phase) => {
       this.cameras.main.setBackgroundColor(SKY_COLORS[phase]);
@@ -167,12 +167,21 @@ export class MainScene extends CustomScene {
       }
 
       // Camera pan: night = scroll up to show constellation, day/sunset = normal
+      const targetScrollY = isNight ? nightScrollY : 0;
       this.tweens.add({
         targets: this.cameras.main,
-        scrollY: isNight ? nightScrollY : 0,
+        scrollY: targetScrollY,
         duration: 800,
         ease: 'Power2',
+        onUpdate: () => {
+          if (isNight) {
+            this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
+          }
+        },
       });
+      if (isNight) {
+        this.skillTreeUI.setCameraOffset(this.cameras.main.scrollY);
+      }
     });
 
     // Start in daytime
@@ -187,13 +196,11 @@ export class MainScene extends CustomScene {
       .rectangle(barX, barY, barWidth, barHeight, 0x000000, 0.4)
       .setOrigin(0, 0)
       .setDepth(150)
-      .setScrollFactor(0)
       .setVisible(false);
     this.cooldownBar = this.add
       .rectangle(barX, barY, barWidth, barHeight, 0xaaccff, 0.8)
       .setOrigin(0, 0)
       .setDepth(151)
-      .setScrollFactor(0)
       .setVisible(false);
 
     // Click on cliff during daytime = spawn 1 human
@@ -224,17 +231,38 @@ export class MainScene extends CustomScene {
     const baseY = this.groundY - this.tileSize;
     const y = elevated ? baseY - this.tileSize : baseY;
 
-    // If elevated, draw a 3-tile-wide hill (1 tile each side + center)
+    // If elevated, draw a 3-tile-wide hill with sprites
     if (elevated) {
       const hillX = x - this.tileSize;
       const hillW = this.tileSize * 3;
       const ground = this.add.graphics();
       ground.fillStyle(0x3a3a2a);
       ground.fillRect(hillX, baseY, hillW, this.tileSize);
-      // Top edge highlight
-      ground.lineStyle(1, 0x555544, 0.4);
-      ground.lineBetween(hillX, baseY, hillX + hillW, baseY);
       this.decorContainer.addAt(ground, 0);
+
+      const cornerFrame = 14 * 16 + 0; // frame(0, 14) — left corner, hills only
+      const edgeFrame = 14 * 16 + 1; // frame(1, 14) — straight edge
+      // Left corner
+      this.decorContainer.add(
+        this.add
+          .image(hillX, baseY - this.tileSize, 'worldElement', cornerFrame)
+          .setOrigin(0, 0)
+          .setScale(scale),
+      );
+      // Center edge
+      this.decorContainer.add(
+        this.add
+          .image(hillX + this.tileSize, baseY - this.tileSize, 'worldElement', edgeFrame)
+          .setOrigin(0, 0)
+          .setScale(scale),
+      );
+      // Right edge (mirror the edge)
+      this.decorContainer.add(
+        this.add
+          .image(hillX + this.tileSize * 2, baseY - this.tileSize, 'worldElement', edgeFrame)
+          .setOrigin(0, 0)
+          .setScale(scale),
+      );
     }
 
     const sprite = this.add
@@ -268,16 +296,34 @@ export class MainScene extends CustomScene {
   private drawCliff() {
     const g = this.add.graphics();
     g.fillStyle(0x222222);
-    g.fillRect(0, this.groundY, this.cliffEdgeX, this.canvasHeight - this.groundY);
-    g.fillStyle(0x1a1a1a);
-    g.fillRect(
-      this.cliffEdgeX,
-      this.groundY,
-      this.tileSize * 0.5,
-      this.canvasHeight - this.groundY,
-    );
-    g.lineStyle(2, 0x333333);
-    g.lineBetween(0, this.groundY, this.cliffEdgeX, this.groundY);
+    g.fillRect(0, this.groundY, this.cliffEdgeX - this.tileSize, this.canvasHeight - this.groundY);
+
+    const scale = this.tileSize / 16;
+    const groundFrame = 14 * 16 + 1;  // frame(1, 14) — ground surface, tiled
+    const faceFrame = 15 * 16 + 1;    // frame(1, 15) — cliff face, tiled vertically
+    const cornerFrame = 15 * 16 + 2;  // frame(2, 15) — cliff corner (top-right)
+
+    // Ground surface along the top
+    for (let tx = 0; tx < this.cliffEdgeX -  this.tileSize; tx += this.tileSize) {
+      this.add
+        .image(tx, this.groundY - this.tileSize, 'worldElement', groundFrame)
+        .setOrigin(0, 0)
+        .setScale(scale);
+    }
+
+    // Cliff corner at top-right
+    this.add
+      .image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
+      .setOrigin(1, 0)
+      .setScale(scale);
+
+    // Cliff face going down from below the corner
+    for (let ty = this.groundY + this.tileSize; ty < this.canvasHeight; ty += this.tileSize) {
+      this.add
+        .image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
+        .setOrigin(1, 0)
+        .setScale(scale);
+    }
   }
 
   update(time: number, delta: number) {

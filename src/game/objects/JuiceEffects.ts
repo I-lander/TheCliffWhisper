@@ -1,15 +1,18 @@
+import { MainScene } from '../scenes/MainScene';
+
 export class JuiceEffects {
-  private scene: Phaser.Scene;
+  private scene: MainScene;
   private flashOverlay!: Phaser.GameObjects.Rectangle;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: MainScene) {
     this.scene = scene;
     const cam = scene.cameras.main;
 
     // Flash overlay
-    this.flashOverlay = scene.add.rectangle(
-      cam.width / 2, cam.height / 2, cam.width, cam.height, 0xffffff
-    ).setAlpha(0).setDepth(200);
+    this.flashOverlay = scene.add
+      .rectangle(cam.width / 2, cam.height / 2, cam.width, cam.height, 0xffffff)
+      .setAlpha(0)
+      .setDepth(200);
   }
 
   onJump(x: number, y: number) {
@@ -81,12 +84,9 @@ export class JuiceEffects {
   private spawnJumpParticles(x: number, y: number) {
     const count = 4 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++) {
-      const particle = this.scene.add.circle(
-        x, y,
-        1 + Math.random() * 2,
-        0xffffff,
-        0.8
-      ).setDepth(40);
+      const particle = this.scene.add
+        .rectangle(x, y, this.scene.pixelUnit, this.scene.pixelUnit, 0xffffff, 0.8)
+        .setDepth(40);
 
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.8;
       const speed = 50 + Math.random() * 100;
@@ -98,7 +98,6 @@ export class JuiceEffects {
         x: particle.x + vx * 0.5,
         y: particle.y + vy * 0.5,
         alpha: 0,
-        scale: 0.2,
         duration: 300 + Math.random() * 300,
         ease: 'Power2',
         onComplete: () => particle.destroy(),
