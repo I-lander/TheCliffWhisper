@@ -2,6 +2,7 @@ import { CustomScene } from '../customClasses/CustomScene';
 import { GameManager } from '../GameManager';
 import { PopulationManager } from '../PopulationManager';
 import { MainScene } from './MainScene';
+import { t } from '../i18n/i18n';
 
 export class UIScene extends CustomScene {
   mainScene!: MainScene;
@@ -106,7 +107,7 @@ export class UIScene extends CustomScene {
     // Top-right: menu button
     const screenWidth = this.cameras.main.width;
     const menuBtn = this.add
-      .text(screenWidth - padding, padding, '[ Menu ]', {
+      .text(screenWidth - padding, padding, t('hud.menu'), {
         fontSize: `${smallFontSize}px`,
         color: '#666688',
         fontFamily: 'PixelSleigh',
@@ -136,8 +137,8 @@ export class UIScene extends CustomScene {
     const phase = this.gameManager.getPhase();
     const day = this.gameManager.getDayCount();
 
-    this.dayText.setText(`Day ${day}`);
-    this.phaseText.setText(phase);
+    this.dayText.setText(`${t('hud.day')} ${day}`);
+    this.phaseText.setText(t(`phase.${phase}`));
     this.timerText.setText('');
 
     const pop = this.populationManager.population;
@@ -146,13 +147,13 @@ export class UIScene extends CustomScene {
     const autoCount = this.mainScene.constellationManager.bonuses.autoClickerCount;
     const maxKills = this.populationManager.getMaxKillsPerDay(dayDuration, autoCount);
 
-    this.popText.setText(`Population: ${pop.toLocaleString()}`);
-    this.birthRateText.setText(`+${birthRate}/day`);
+    this.popText.setText(`${t('hud.population')}: ${pop.toLocaleString()}`);
+    this.birthRateText.setText(`+${birthRate}/${t('hud.day').toLowerCase()}`);
 
     const { jumped, turnedBack } = this.populationManager;
-    this.dailyStatsText.setText(`Jumped: ${jumped}  Turned back: ${turnedBack}`);
+    this.dailyStatsText.setText(`${t('hud.jumped')}: ${jumped}  ${t('hud.turnedBack')}: ${turnedBack}`);
 
     const souls = this.mainScene.constellationManager.souls;
-    this.soulsText.setText(`Souls: ${souls}`);
+    this.soulsText.setText(`${t('hud.souls')}: ${souls}`);
   }
 }

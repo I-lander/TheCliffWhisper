@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n';
+
 export type EndRunResult = 'victory' | 'defeat';
 
 export class EndRunScene extends Phaser.Scene {
@@ -25,7 +27,7 @@ export class EndRunScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x050510);
 
     // Title
-    const title = this.result === 'victory' ? 'Silence.' : 'They endure.';
+    const title = this.result === 'victory' ? t('end.victory') : t('end.defeat');
     const titleColor = this.result === 'victory' ? '#ffffff' : '#ff4444';
 
     this.add.text(cx, cy - tileSize * 2, title, {
@@ -36,8 +38,8 @@ export class EndRunScene extends Phaser.Scene {
 
     // Stats
     const statsLines = this.result === 'victory'
-      ? `Extinction achieved in ${this.dayCount} days.`
-      : `Population: ${this.finalPopulation.toLocaleString()}\nThe birth rate could no longer be overcome.`;
+      ? t('end.victoryStats').replace('{days}', String(this.dayCount))
+      : t('end.defeatStats').replace('{pop}', this.finalPopulation.toLocaleString());
 
     this.add.text(cx, cy, statsLines, {
       fontSize: `${bodySize}px`,
@@ -47,7 +49,7 @@ export class EndRunScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Restart prompt
-    this.add.text(cx, cy + tileSize * 3, 'Click to try again', {
+    this.add.text(cx, cy + tileSize * 3, t('end.restart'), {
       fontSize: `${bodySize}px`,
       color: '#555555',
       fontFamily: 'PixelSleigh',

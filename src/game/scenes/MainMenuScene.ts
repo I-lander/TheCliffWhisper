@@ -2,6 +2,7 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { SaveManager } from '../SaveManager';
 import { removeSplashScreen, createUIPanel } from '../utils/utils';
+import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
 
 export class MainMenuScene extends Phaser.Scene {
   private continueBtn!: Phaser.GameObjects.Text;
@@ -12,6 +13,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create() {
+    initLanguage();
     removeSplashScreen(this);
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
@@ -23,7 +25,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Title
     this.add
-      .text(cx, cy - tileSize * 4, 'The Cliff Whisperer', {
+      .text(cx, cy - tileSize * 4, t('menu.title'), {
         fontSize: `${titleSize}px`,
         color: '#ffffff',
         fontFamily: 'PixelSleigh',
@@ -33,16 +35,33 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Subtitle
     this.add
-      .text(cx, cy - tileSize * 2.5, 'Lead them to the edge.', {
+      .text(cx, cy - tileSize * 2.5, t('menu.subtitle'), {
         fontSize: `${Math.round(tileSize * 0.45)}px`,
         color: '#666688',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5);
 
+    // Language toggle button (top-right)
+    const langBtn = this.add
+      .text(this.cameras.main.width - tileSize * 0.5, tileSize * 0.5, t('menu.language'), {
+        fontSize: `${Math.round(tileSize * 0.5)}px`,
+        color: '#666688',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true });
+
+    langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setColor('#aaccff'));
+    langBtn.on(Phaser.Input.Events.POINTER_OUT, () => langBtn.setColor('#666688'));
+    langBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      setLanguage(getLanguage() === 'en' ? 'fr' : 'en');
+      this.scene.restart();
+    });
+
     // New Game button
     const newGameBtn = this.add
-      .text(cx, cy + tileSize * 0.5, '[ New Game ]', {
+      .text(cx, cy + tileSize * 0.5, t('menu.newGame'), {
         fontSize: `${btnSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
@@ -64,7 +83,7 @@ export class MainMenuScene extends Phaser.Scene {
     const hasSave = SaveManager.hasSave();
 
     this.continueBtn = this.add
-      .text(cx, cy + tileSize * 2, '[ Continue ]', {
+      .text(cx, cy + tileSize * 2, t('menu.continue'), {
         fontSize: `${btnSize}px`,
         color: hasSave ? '#aaccff' : '#333344',
         fontFamily: 'PixelSleigh',
@@ -96,7 +115,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Quit button
     const quitBtn = this.add
-      .text(cx, cy + tileSize * 4, '[ Quit ]', {
+      .text(cx, cy + tileSize * 4, t('menu.quit'), {
         fontSize: `${btnSize}px`,
         color: '#666688',
         fontFamily: 'PixelSleigh',
@@ -134,7 +153,7 @@ export class MainMenuScene extends Phaser.Scene {
     createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, { color: 0x0a0a1a, alpha: 1 });
 
     const warning = this.add
-      .text(cx, cy - tileSize * 1.5, 'Your save will be lost.\nStart a new game?', {
+      .text(cx, cy - tileSize * 1.5, t('menu.confirmLose'), {
         fontSize: `${smallSize}px`,
         color: '#ff6666',
         fontFamily: 'PixelSleigh',
@@ -144,7 +163,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setDepth(11);
 
     const yesBtn = this.add
-      .text(cx - tileSize * 2, cy + tileSize * 0.5, '[ Yes ]', {
+      .text(cx - tileSize * 2, cy + tileSize * 0.5, t('menu.yes'), {
         fontSize: `${smallSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
@@ -161,7 +180,7 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const noBtn = this.add
-      .text(cx + tileSize * 2, cy + tileSize * 0.5, '[ No ]', {
+      .text(cx + tileSize * 2, cy + tileSize * 0.5, t('menu.no'), {
         fontSize: `${smallSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',

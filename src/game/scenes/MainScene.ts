@@ -10,6 +10,7 @@ import { JuiceEffects } from '../objects/JuiceEffects';
 import { AbilityUI } from '../abilities/AbilityUI';
 import { UIScene } from './UIScene';
 import { SaveManager } from '../SaveManager';
+import { t } from '../i18n/i18n';
 
 const SKY_COLORS: Record<GamePhase, { r: number; g: number; b: number }> = {
   [GamePhase.Night]: { r: 0x0a, g: 0x0a, b: 0x1a },
@@ -153,7 +154,7 @@ export class MainScene extends CustomScene {
 
     // End Day button (visible during Daytime only)
     this.endDayBtn = this.add
-      .text(this.canvasWidth / 2, this.tileSize * 0.8, '[ End Day ]', {
+      .text(this.canvasWidth / 2, this.tileSize * 0.8, t('game.endDay'), {
         fontSize: `${Math.round(this.tileSize * 0.5)}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',

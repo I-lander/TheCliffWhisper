@@ -2,6 +2,7 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { SaveManager, SaveData } from '../SaveManager';
 import { MainScene } from './MainScene';
+import { t } from '../i18n/i18n';
 
 export class PauseMenuScene extends Phaser.Scene {
   private overlay!: Phaser.GameObjects.Rectangle;
@@ -28,7 +29,7 @@ export class PauseMenuScene extends Phaser.Scene {
 
     // Title
     this.add
-      .text(cx, cy - tileSize * 3, 'Paused', {
+      .text(cx, cy - tileSize * 3, t('pause.title'), {
         fontSize: `${Math.round(tileSize * 1)}px`,
         color: '#ffffff',
         fontFamily: 'PixelSleigh',
@@ -47,10 +48,10 @@ export class PauseMenuScene extends Phaser.Scene {
       .setDepth(1);
 
     const buttons = [
-      { label: '[ Resume ]', action: () => this.resumeGame() },
-      { label: '[ Save ]', action: () => this.saveGame() },
-      { label: '[ Main Menu ]', action: () => this.saveAndGoToMenu() },
-      { label: '[ Quit Game ]', action: () => this.saveAndQuitApp() },
+      { label: t('pause.resume'), action: () => this.resumeGame() },
+      { label: t('pause.save'), action: () => this.saveGame() },
+      { label: t('pause.mainMenu'), action: () => this.saveAndGoToMenu() },
+      { label: t('pause.quitGame'), action: () => this.saveAndQuitApp() },
     ];
 
     buttons.forEach((btn, i) => {
@@ -102,7 +103,7 @@ export class PauseMenuScene extends Phaser.Scene {
   private saveGame() {
     const data = this.buildSaveData();
     SaveManager.save(data);
-    this.saveStatusText.setText('Game saved!');
+    this.saveStatusText.setText(t('pause.saved'));
     this.time.delayedCall(2000, () => {
       this.saveStatusText.setText('');
     });

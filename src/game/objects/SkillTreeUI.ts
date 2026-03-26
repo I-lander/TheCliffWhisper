@@ -1,6 +1,7 @@
 import { ConstellationManager } from '../constellations/ConstellationManager';
 import { SkillTree } from '../constellations/ConstellationData';
 import { drawDashedLine, createUIPanel } from '../utils/utils';
+import { t } from '../i18n/i18n';
 
 const LOCKED_ALPHA = 0.18;
 
@@ -121,7 +122,7 @@ export class SkillTreeUI {
     // End Night button
     const btnY = cam.height - tileSize * 1.2;
     this.endNightBtn = scene.add
-      .text(cam.width / 2, btnY, '[ End Night ]', {
+      .text(cam.width / 2, btnY, t('tree.endNight'), {
         fontSize: `${Math.round(tileSize * 0.6)}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
@@ -191,7 +192,7 @@ export class SkillTreeUI {
     // Unlock button — standalone objects, NOT inside a container
     const btnFontSize = Math.round(tileSize * 0.55);
     this.unlockBtnBg = scene.add.graphics().setScrollFactor(0).setDepth(210).setVisible(false);
-    this.unlockBtnText = scene.add.text(0, 0, 'Unlock', {
+    this.unlockBtnText = scene.add.text(0, 0, t('tree.unlock'), {
       fontSize: `${btnFontSize}px`,
       color: '#44ff88',
       fontFamily: 'PixelSleigh',
@@ -424,9 +425,9 @@ export class SkillTreeUI {
     const pu = cam.height / 288;
     const colorStr = '#' + branchColor.toString(16).padStart(6, '0');
 
-    this.tooltipName.setText(node.name).setColor(colorStr);
-    this.tooltipDesc.setText(node.description);
-    this.tooltipCost.setText(unlocked ? 'Unlocked' : `Cost: ${node.cost} souls`);
+    this.tooltipName.setText(t(`node.${node.id}.name`)).setColor(colorStr);
+    this.tooltipDesc.setText(t(`node.${node.id}.desc`));
+    this.tooltipCost.setText(unlocked ? t('tree.unlocked') : t('tree.cost').replace('{cost}', String(node.cost)));
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
@@ -488,6 +489,6 @@ export class SkillTreeUI {
   }
 
   private updateBudget() {
-    this.budgetText.setText(`Souls: ${this.constellationMgr.souls}`);
+    this.budgetText.setText(`${t('hud.souls')}: ${this.constellationMgr.souls}`);
   }
 }

@@ -1,13 +1,33 @@
 import { ABILITIES, AbilityDef } from './AbilityData';
 import { ConstellationBonuses } from '../constellations/ConstellationData';
+import { createUIPanel } from '../utils/utils';
+import { t } from '../i18n/i18n';
+
+interface AbilityButton {
+  bg: Phaser.GameObjects.Graphics;
+  label: Phaser.GameObjects.Text;
+  cdOverlay: Phaser.GameObjects.Graphics;
+  cdText: Phaser.GameObjects.Text;
+  hitZone: Phaser.GameObjects.Rectangle;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 export class AbilityUI {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private cooldowns: Map<string, number> = new Map();
-  private buttons: Map<string, { bg: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; cdOverlay: Phaser.GameObjects.Graphics; cdText: Phaser.GameObjects.Text }> = new Map();
+  private buttons: Map<string, AbilityButton> = new Map();
   private getBonuses: () => ConstellationBonuses;
   private onActivate: (id: string) => void;
+
+  // Tooltip
+  private tooltipContainer: Phaser.GameObjects.Container;
+  private tooltipGfx!: Phaser.GameObjects.Graphics;
+  private tooltipText!: Phaser.GameObjects.Text;
+  private pressedAbilityId: string | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -18,16 +38,36 @@ export class AbilityUI {
     this.getBonuses = getBonuses;
     this.onActivate = onActivate;
     this.container = scene.add.container(0, 0).setDepth(160);
+    this.tooltipContainer = scene.add.container(0, 0).setDepth(170).setVisible(false);
+    this.initTooltip();
     this.setVisible(false);
+  }
+
+  private initTooltip() {
+    const tileSize = this.scene.cameras.main.height / 18;
+    const fontSize = Math.round(tileSize * 0.3);
+
+    this.tooltipGfx = this.scene.add.graphics();
+    this.tooltipText = this.scene.add.text(0, 0, '', {
+      fontSize: `${fontSize}px`,
+      color: '#ccccdd',
+      fontFamily: 'PixelSleigh',
+      align: 'center',
+      wordWrap: { width: tileSize * 6 },
+    }).setOrigin(0.5, 1);
+
+    this.tooltipContainer.add([this.tooltipGfx, this.tooltipText]);
   }
 
   setVisible(visible: boolean) {
     this.container.setVisible(visible);
+    if (!visible) this.hideTooltip();
   }
 
   refresh() {
     this.container.removeAll(true);
     this.buttons.clear();
+    this.hideTooltip();
 
     const bonuses = this.getBonuses();
     const unlocked = ABILITIES.filter((a) => bonuses.abilities.includes(a.id));
@@ -51,14 +91,12 @@ export class AbilityUI {
   private createButton(def: AbilityDef, x: number, y: number, w: number, h: number) {
     const tileSize = this.scene.cameras.main.height / 18;
     const fontSize = Math.round(tileSize * 0.32);
+    const lineWidth = Math.round(tileSize * 0.04);
 
     const bg = this.scene.add.graphics();
-    bg.fillStyle(0x111122, 0.85);
-    bg.fillRoundedRect(x, y, w, h, 4);
-    bg.lineStyle(1, 0xaaccff, 0.4);
-    bg.strokeRoundedRect(x, y, w, h, 4);
+    createUIPanel(bg, x, y, w, h, lineWidth, 0x4466aa, 0.5, { color: 0x111122, alpha: 0.85 });
 
-    const label = this.scene.add.text(x + w / 2, y + h / 2, def.name, {
+    const label = this.scene.add.text(x + w / 2, y + h / 2, t(`ability.${def.id}.name`), {
       fontSize: `${fontSize}px`,
       color: '#aaccff',
       fontFamily: 'PixelSleigh',
@@ -78,8 +116,19 @@ export class AbilityUI {
 
     hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       if ((this.cooldowns.get(def.id) ?? 0) > 0) return;
-      this.cooldowns.set(def.id, this.getAbilityCooldown(def.id));
-      this.onActivate(def.id);
+      this.pressedAbilityId = def.id;
+      this.showTooltip(def, x, y, w);
+    });
+
+    hitZone.on(Phaser.Input.Events.POINTER_UP, () => {
+      if (this.pressedAbilityId === def.id) {
+        if ((this.cooldowns.get(def.id) ?? 0) <= 0) {
+          this.cooldowns.set(def.id, this.getAbilityCooldown(def.id));
+          this.onActivate(def.id);
+        }
+        this.pressedAbilityId = null;
+        this.hideTooltip();
+      }
     });
 
     hitZone.on(Phaser.Input.Events.POINTER_OVER, () => {
@@ -87,10 +136,62 @@ export class AbilityUI {
     });
     hitZone.on(Phaser.Input.Events.POINTER_OUT, () => {
       label.setColor('#aaccff');
+      if (this.pressedAbilityId === def.id) {
+        this.pressedAbilityId = null;
+        this.hideTooltip();
+      }
     });
 
     this.container.add([bg, label, cdOverlay, cdText, hitZone]);
-    this.buttons.set(def.id, { bg, label, cdOverlay, cdText });
+    this.buttons.set(def.id, { bg, label, cdOverlay, cdText, hitZone, x, y, w, h });
+  }
+
+  private showTooltip(def: AbilityDef, btnX: number, btnY: number, btnW: number) {
+    const tileSize = this.scene.cameras.main.height / 18;
+    const lineWidth = Math.round(tileSize * 0.04);
+    const bonuses = this.getBonuses();
+    const stats = this.getAbilityStats(def.id, bonuses);
+
+    const name = t(`ability.${def.id}.name`);
+    const desc = t(`ability.${def.id}.desc`);
+    const text = `${name}\n${desc}\n\n${stats}`;
+    this.tooltipText.setText(text);
+
+    const padding = tileSize * 0.4;
+    const tw = Math.max(this.tooltipText.width + padding * 2, tileSize * 5);
+    const th = this.tooltipText.height + padding * 2;
+    const tx = btnX + btnW / 2 - tw / 2;
+    const ty = btnY - th - tileSize * 0.3;
+
+    this.tooltipText.setPosition(tx + tw / 2, ty + th - padding);
+
+    this.tooltipGfx.clear();
+    createUIPanel(this.tooltipGfx, tx, ty, tw, th, lineWidth, 0x4466aa, 0.6, { color: 0x0a0a1a, alpha: 0.95 });
+
+    this.tooltipContainer.setVisible(true);
+  }
+
+  private hideTooltip() {
+    this.tooltipContainer.setVisible(false);
+    this.pressedAbilityId = null;
+  }
+
+  private getAbilityStats(id: string, b: ConstellationBonuses): string {
+    const cd = (v: number) => t('ability.stat.cd').replace('{cd}', String(v / 1000));
+    switch (id) {
+      case 'frenzy_pulse':
+        return `${t('ability.stat.speed').replace('{mult}', String(b.frenzyPulse.multiplier)).replace('{dur}', String(b.frenzyPulse.duration / 1000))}\n${cd(b.frenzyPulse.cooldown)}`;
+      case 'void_call':
+        return `${t('ability.stat.turnBack').replace('{dur}', String(b.voidCall.duration / 1000))}\n${cd(b.voidCall.cooldown)}`;
+      case 'dark_wave':
+        return `${t('ability.stat.spawn').replace('{count}', String(b.darkWave.count))}\n${cd(b.darkWave.cooldown)}`;
+      case 'soul_harvest':
+        return `${t('ability.stat.souls').replace('{mult}', String(b.soulHarvest.multiplier)).replace('{dur}', String(b.soulHarvest.duration / 1000))}\n${cd(b.soulHarvest.cooldown)}`;
+      case 'silence':
+        return `${t('ability.stat.births').replace('{dur}', String(b.silence.duration / 1000))}\n${cd(b.silence.cooldown)}`;
+      default:
+        return '';
+    }
   }
 
   private getAbilityCooldown(id: string): number {
@@ -120,13 +221,6 @@ export class AbilityUI {
         btn.label.setAlpha(0.3);
         btn.cdText.setVisible(true);
         btn.cdText.setText(`${Math.ceil(newVal / 1000)}s`);
-
-        // Darken overlay
-        btn.cdOverlay.clear();
-        const bounds = btn.label.parentContainer
-          ? { x: btn.label.x - 50, y: btn.label.y - 15, w: 100, h: 30 }
-          : { x: 0, y: 0, w: 0, h: 0 };
-        // Simple alpha tint on the whole button area
         btn.bg.setAlpha(0.3 + 0.7 * (1 - progress));
       } else {
         btn.label.setAlpha(1);
