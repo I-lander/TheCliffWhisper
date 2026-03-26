@@ -3,6 +3,7 @@ import { GameManager } from '../GameManager';
 import { PopulationManager } from '../PopulationManager';
 import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
+import { AUDIO_KEYS } from '../audio/AudioManager';
 
 export class UIScene extends CustomScene {
   mainScene!: MainScene;
@@ -107,9 +108,10 @@ export class UIScene extends CustomScene {
       .setAlpha(0.8)
       .setInteractive({ useHandCursor: true });
 
-    menuBtn.on(Phaser.Input.Events.POINTER_OVER, () => menuBtn.setColor('#aaccff'));
+    menuBtn.on(Phaser.Input.Events.POINTER_OVER, () => { menuBtn.setColor('#aaccff'); this.mainScene.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
     menuBtn.on(Phaser.Input.Events.POINTER_OUT, () => menuBtn.setColor('#666688'));
     menuBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.mainScene.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       this.mainScene.openPauseMenu();
     });
   }

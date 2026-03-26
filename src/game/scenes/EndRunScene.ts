@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n';
+import { AUDIO_KEYS } from '../audio/AudioManager';
 
 export type EndRunResult = 'victory' | 'defeat';
 
@@ -56,6 +57,7 @@ export class EndRunScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.input.once(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.sound.play(AUDIO_KEYS.UI_CLICK, { volume: 0.4 });
       this.scene.stop('EndRunScene');
       this.scene.stop('UIScene');
       this.scene.stop('MainScene');

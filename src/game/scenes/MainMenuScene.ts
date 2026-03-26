@@ -3,10 +3,12 @@ import { Capacitor } from '@capacitor/core';
 import { SaveManager } from '../SaveManager';
 import { removeSplashScreen, createUIPanel } from '../utils/utils';
 import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
+import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 
 export class MainMenuScene extends Phaser.Scene {
   private continueBtn!: Phaser.GameObjects.Text;
   private confirmGroup: Phaser.GameObjects.GameObject[] = [];
+  private audio!: AudioManager;
 
   constructor() {
     super('MainMenuScene');
@@ -14,6 +16,8 @@ export class MainMenuScene extends Phaser.Scene {
 
   create() {
     initLanguage();
+    this.audio = new AudioManager(this);
+    this.audio.playMusic(AUDIO_KEYS.MENU_THEME, 0.25);
     removeSplashScreen(this);
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
@@ -48,6 +52,7 @@ export class MainMenuScene extends Phaser.Scene {
     langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setAlpha(1));
     langBtn.on(Phaser.Input.Events.POINTER_OUT, () => langBtn.setAlpha(0.7));
     langBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       setLanguage(currentLang === 'en' ? 'fr' : 'en');
       this.scene.restart();
     });
@@ -62,9 +67,10 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    newGameBtn.on(Phaser.Input.Events.POINTER_OVER, () => newGameBtn.setColor('#ffffff'));
+    newGameBtn.on(Phaser.Input.Events.POINTER_OVER, () => { newGameBtn.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
     newGameBtn.on(Phaser.Input.Events.POINTER_OUT, () => newGameBtn.setColor('#aaccff'));
     newGameBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       if (SaveManager.hasSave()) {
         this.showNewGameConfirm(cx, cy, tileSize);
       } else {
@@ -85,9 +91,10 @@ export class MainMenuScene extends Phaser.Scene {
 
     if (hasSave) {
       this.continueBtn.setInteractive({ useHandCursor: true });
-      this.continueBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.continueBtn.setColor('#ffffff'));
+      this.continueBtn.on(Phaser.Input.Events.POINTER_OVER, () => { this.continueBtn.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
       this.continueBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.continueBtn.setColor('#aaccff'));
       this.continueBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+        this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
         this.startGame(true);
       });
 
@@ -116,9 +123,10 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    quitBtn.on(Phaser.Input.Events.POINTER_OVER, () => quitBtn.setColor('#ff6666'));
+    quitBtn.on(Phaser.Input.Events.POINTER_OVER, () => { quitBtn.setColor('#ff6666'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
     quitBtn.on(Phaser.Input.Events.POINTER_OUT, () => quitBtn.setColor('#666688'));
     quitBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       if (Capacitor.getPlatform() === 'android') {
         App.exitApp();
       } else if (window.electron) {
@@ -168,6 +176,7 @@ export class MainMenuScene extends Phaser.Scene {
     yesBtn.on(Phaser.Input.Events.POINTER_OVER, () => yesBtn.setColor('#ffffff'));
     yesBtn.on(Phaser.Input.Events.POINTER_OUT, () => yesBtn.setColor('#aaccff'));
     yesBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CONFIRM, 0.4);
       SaveManager.deleteSave();
       this.startGame();
     });
@@ -185,6 +194,7 @@ export class MainMenuScene extends Phaser.Scene {
     noBtn.on(Phaser.Input.Events.POINTER_OVER, () => noBtn.setColor('#ffffff'));
     noBtn.on(Phaser.Input.Events.POINTER_OUT, () => noBtn.setColor('#aaccff'));
     noBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CANCEL, 0.4);
       this.dismissConfirm();
     });
 
@@ -199,6 +209,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private startGame(loadSave = false) {
+    this.audio.stopMusic();
     this.scene.start('MainScene', { loadSave });
     this.scene.start('UIScene');
     this.scene.bringToTop('UIScene');

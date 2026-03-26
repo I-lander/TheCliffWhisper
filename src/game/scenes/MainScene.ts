@@ -11,6 +11,7 @@ import { AbilityUI } from '../abilities/AbilityUI';
 import { UIScene } from './UIScene';
 import { SaveManager } from '../SaveManager';
 import { t } from '../i18n/i18n';
+import { AudioManager, AUDIO_KEYS, ABILITY_AUDIO, DECO_AUDIO } from '../audio/AudioManager';
 
 const SKY_COLORS: Record<GamePhase, { r: number; g: number; b: number }> = {
   [GamePhase.Night]: { r: 0x0a, g: 0x0a, b: 0x1a },
@@ -64,6 +65,7 @@ export class MainScene extends CustomScene {
   private camStartY: number = 0;
 
   private loadSave: boolean = false;
+  audio!: AudioManager;
 
   constructor() {
     super('MainScene');
@@ -113,6 +115,8 @@ export class MainScene extends CustomScene {
     );
 
     this.decorManager.setOnDecorPlaced((placed) => {
+      const decoSound = DECO_AUDIO[placed.def.id];
+      if (decoSound) this.audio.playSfx(decoSound, 0.35);
       // For elevated decor, make the hill columns solid first
       if (placed.elevation > 0) {
         const row = this.cliffTilemap.rows - 1 - placed.elevation;
@@ -146,6 +150,10 @@ export class MainScene extends CustomScene {
     // Juice effects
     this.juiceEffects = new JuiceEffects(this);
 
+    // Audio
+    this.audio = new AudioManager(this);
+    this.audio.playMusic(AUDIO_KEYS.AMBIENCE_DAY, 0.2);
+
     this.uiScene = this.scene.get('UIScene') as UIScene;
     this.uiScene.setGameManager(this.gameManager);
     this.uiScene.setPopulationManager(this.populationManager);
@@ -164,7 +172,7 @@ export class MainScene extends CustomScene {
       .setInteractive({ useHandCursor: true });
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.endDayBtn.setColor('#ffffff'));
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.endDayBtn.setColor('#aaccff'));
-    this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.gameManager.skipPhase());
+    this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); this.gameManager.skipPhase(); });
 
     // Set initial sky color from current game phase
     const initialSky = SKY_COLORS[this.gameManager.getPhase()];
@@ -177,6 +185,17 @@ export class MainScene extends CustomScene {
 
     this.gameManager.onPhaseChange((phase) => {
       this.transitionSkyColor(SKY_COLORS[phase]);
+      // Phase transition audio
+      if (phase === GamePhase.Night) {
+        this.audio.playSfx(AUDIO_KEYS.PHASE_NIGHT, 0.4);
+        this.audio.crossfadeTo(AUDIO_KEYS.AMBIENCE_NIGHT, 0.2);
+      } else if (phase === GamePhase.Daytime) {
+        this.audio.playSfx(AUDIO_KEYS.PHASE_DAY, 0.4);
+        this.audio.crossfadeTo(AUDIO_KEYS.AMBIENCE_DAY, 0.2);
+      } else if (phase === GamePhase.Sunset) {
+        this.audio.playSfx(AUDIO_KEYS.PHASE_SUNSET, 0.35);
+        this.audio.playSfx(AUDIO_KEYS.POPULATION_BIRTH, 0.3);
+      }
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
         this.clickCooldownTimer = 0;
@@ -323,6 +342,8 @@ export class MainScene extends CustomScene {
   // ── Ability execution ──
 
   private executeAbility(id: string) {
+    const abilitySound = ABILITY_AUDIO[id];
+    if (abilitySound) this.audio.playSfx(abilitySound, 0.5);
     const bonuses = this.constellationManager.bonuses;
     switch (id) {
       case 'void_call': {
@@ -467,15 +488,18 @@ export class MainScene extends CustomScene {
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
+        this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_JUMP, 0.4);
         // Soul gain: base multiplier × soul harvest if active, always integer
         const soulHarvestMult = this.soulHarvestActive ? this.constellationManager.bonuses.soulHarvest.multiplier : 1;
         const soulGain = Math.floor(this.constellationManager.bonuses.soulMultiplier * soulHarvestMult);
         this.constellationManager.souls += soulGain;
         this.juiceEffects.onJump(jumpX, jumpY);
       },
-      () => this.populationManager.onHumanTurnedBack(),
+      () => { this.populationManager.onHumanTurnedBack(); this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_TURNBACK, 0.3); },
     );
     human.setOnFellOff((fx) => {
+      this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_FALL, 0.25);
+      this.audio.playSfx(AUDIO_KEYS.SOUL_RISE, 0.2);
       this.juiceEffects.spawnSoul(fx, this.canvasHeight);
       this.juiceEffects.onDeath();
     });
@@ -517,6 +541,8 @@ export class MainScene extends CustomScene {
   private endRun(result: 'victory' | 'defeat') {
     this.runEnded = true;
     this.gameManager.pause();
+    this.audio.stopMusic();
+    this.audio.playSfx(result === 'victory' ? AUDIO_KEYS.VICTORY : AUDIO_KEYS.DEFEAT, 0.5);
     this.scene.launch('EndRunScene', {
       result,
       dayCount: this.gameManager.getDayCount(),

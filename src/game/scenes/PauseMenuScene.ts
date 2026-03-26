@@ -3,17 +3,20 @@ import { Capacitor } from '@capacitor/core';
 import { SaveManager, SaveData } from '../SaveManager';
 import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
+import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 
 export class PauseMenuScene extends Phaser.Scene {
   private overlay!: Phaser.GameObjects.Rectangle;
   private menuItems: Phaser.GameObjects.Text[] = [];
   private saveStatusText!: Phaser.GameObjects.Text;
+  private audio!: AudioManager;
 
   constructor() {
     super('PauseMenuScene');
   }
 
   create() {
+    this.audio = new AudioManager(this);
     const w = this.cameras.main.width;
     const h = this.cameras.main.height;
     const tileSize = h / 18;
@@ -65,9 +68,9 @@ export class PauseMenuScene extends Phaser.Scene {
         .setDepth(1)
         .setInteractive({ useHandCursor: true });
 
-      text.on(Phaser.Input.Events.POINTER_OVER, () => text.setColor('#ffffff'));
+      text.on(Phaser.Input.Events.POINTER_OVER, () => { text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
       text.on(Phaser.Input.Events.POINTER_OUT, () => text.setColor('#aaccff'));
-      text.on(Phaser.Input.Events.POINTER_DOWN, btn.action);
+      text.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); btn.action(); });
       this.menuItems.push(text);
     });
 
@@ -103,6 +106,7 @@ export class PauseMenuScene extends Phaser.Scene {
   private saveGame() {
     const data = this.buildSaveData();
     SaveManager.save(data);
+    this.audio.playSfx(AUDIO_KEYS.SAVE_CONFIRM, 0.4);
     this.saveStatusText.setText(t('pause.saved'));
     this.time.delayedCall(2000, () => {
       this.saveStatusText.setText('');

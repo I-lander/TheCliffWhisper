@@ -2,6 +2,7 @@ import { ConstellationManager } from '../constellations/ConstellationManager';
 import { SkillTree } from '../constellations/ConstellationData';
 import { drawDashedLine, createUIPanel } from '../utils/utils';
 import { t } from '../i18n/i18n';
+import { AUDIO_KEYS } from '../audio/AudioManager';
 
 const LOCKED_ALPHA = 0.18;
 
@@ -137,7 +138,7 @@ export class SkillTreeUI {
     this.endNightBtn.on(Phaser.Input.Events.POINTER_OUT, () =>
       this.endNightBtn.setColor('#aaccff'),
     );
-    this.endNightBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.onEndNight());
+    this.endNightBtn.on(Phaser.Input.Events.POINTER_DOWN, () => { this.scene.sound.play(AUDIO_KEYS.UI_CLICK, { volume: 0.4 }); this.onEndNight(); });
     this.uiOverlay.add(this.endNightBtn);
 
     // Tooltip (shared, moves on click) — only non-interactive elements here
@@ -210,8 +211,11 @@ export class SkillTreeUI {
       if (!this.selectedNode) return;
       const success = this.constellationMgr.unlockNode(this.selectedNode.treeId, this.selectedNode.nodeIndex);
       if (success) {
+        this.scene.sound.play(AUDIO_KEYS.NODE_UNLOCK, { volume: 0.5 });
         this.hideSelection();
         this.refresh();
+      } else {
+        this.scene.sound.play(AUDIO_KEYS.NODE_LOCKED, { volume: 0.3 });
       }
     });
 
@@ -397,6 +401,7 @@ export class SkillTreeUI {
           .setAlpha(0.001);
 
         hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+          this.scene.sound.play(AUDIO_KEYS.NODE_HOVER, { volume: 0.2 });
           this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, canUnlock, branchColor, tree.id, nodeIndex);
         });
 
