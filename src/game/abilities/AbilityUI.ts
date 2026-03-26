@@ -78,7 +78,7 @@ export class AbilityUI {
 
     hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       if ((this.cooldowns.get(def.id) ?? 0) > 0) return;
-      this.cooldowns.set(def.id, def.cooldown);
+      this.cooldowns.set(def.id, this.getAbilityCooldown(def.id));
       this.onActivate(def.id);
     });
 
@@ -93,6 +93,18 @@ export class AbilityUI {
     this.buttons.set(def.id, { bg, label, cdOverlay, cdText });
   }
 
+  private getAbilityCooldown(id: string): number {
+    const b = this.getBonuses();
+    switch (id) {
+      case 'frenzy_pulse': return b.frenzyPulse.cooldown;
+      case 'void_call': return b.voidCall.cooldown;
+      case 'dark_wave': return b.darkWave.cooldown;
+      case 'soul_harvest': return b.soulHarvest.cooldown;
+      case 'silence': return b.silence.cooldown;
+      default: return 30000;
+    }
+  }
+
   update(delta: number) {
     for (const [id, remaining] of this.cooldowns) {
       if (remaining <= 0) continue;
@@ -103,8 +115,8 @@ export class AbilityUI {
       if (!btn) continue;
 
       if (newVal > 0) {
-        const def = ABILITIES.find((a) => a.id === id)!;
-        const progress = newVal / def.cooldown;
+        const totalCd = this.getAbilityCooldown(id);
+        const progress = newVal / totalCd;
         btn.label.setAlpha(0.3);
         btn.cdText.setVisible(true);
         btn.cdText.setText(`${Math.ceil(newVal / 1000)}s`);

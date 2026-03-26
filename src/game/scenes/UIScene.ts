@@ -17,14 +17,9 @@ export class UIScene extends CustomScene {
   private popText!: Phaser.GameObjects.Text;
   private birthRateText!: Phaser.GameObjects.Text;
 
-  // Top-right: defeat threshold
-  private thresholdText!: Phaser.GameObjects.Text;
-
   // Bottom-left: daily stats + souls
   private dailyStatsText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
-
-
 
   constructor() {
     super('UIScene');
@@ -89,17 +84,6 @@ export class UIScene extends CustomScene {
       .setOrigin(1, 0)
       .setAlpha(0.7);
 
-    // Top-right: defeat threshold
-    this.thresholdText = this.add
-      .text(screenWidth - padding, padding + fontSize * 2.4, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#ff4444',
-        fontFamily: 'PixelSleigh',
-        align: 'right',
-      })
-      .setOrigin(1, 0)
-      .setAlpha(0.5);
-
     // Bottom-left: daily stats
     this.dailyStatsText = this.add
       .text(padding, this.cameras.main.height - padding, '', {
@@ -119,7 +103,6 @@ export class UIScene extends CustomScene {
       })
       .setOrigin(0, 1)
       .setAlpha(0.8);
-
   }
 
   setGameManager(gm: GameManager) {
@@ -148,11 +131,6 @@ export class UIScene extends CustomScene {
 
     this.popText.setText(`Population: ${pop.toLocaleString()}`);
     this.birthRateText.setText(`+${birthRate}/day`);
-    if (autoCount > 0) {
-      this.thresholdText.setText(`Defeat threshold: ${maxKills}/day`).setAlpha(0.5);
-    } else {
-      this.thresholdText.setText('Click to spawn humans').setAlpha(0.35);
-    }
 
     const { jumped, turnedBack } = this.populationManager;
     this.dailyStatsText.setText(`Jumped: ${jumped}  Turned back: ${turnedBack}`);

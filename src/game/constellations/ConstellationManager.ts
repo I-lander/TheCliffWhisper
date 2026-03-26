@@ -6,7 +6,7 @@ const STARTING_SOULS = 0;
 export class ConstellationManager {
   souls: number = STARTING_SOULS;
   unlockedNodes: Set<string> = new Set();
-  bonuses: ConstellationBonuses = { ...DEFAULT_BONUSES };
+  bonuses: ConstellationBonuses = JSON.parse(JSON.stringify(DEFAULT_BONUSES));
 
   private stats: PopulationStats;
   private trees: SkillTree[] = SKILL_TREES;
@@ -15,9 +15,9 @@ export class ConstellationManager {
     this.stats = stats;
   }
 
-  /** Called each time a human dies — grants 1 soul immediately. */
+  /** Called each time a human dies — grants souls based on multiplier. Always integer. */
   onHumanKilled() {
-    this.souls++;
+    this.souls += Math.floor(this.bonuses.soulMultiplier);
   }
 
   getTrees(): SkillTree[] {

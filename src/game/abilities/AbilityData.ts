@@ -2,44 +2,38 @@ export interface AbilityDef {
   id: string;
   name: string;
   description: string;
-  cooldown: number; // ms
+  branch: string;
 }
 
 export const ABILITIES: AbilityDef[] = [
   {
+    id: 'frenzy_pulse',
+    name: 'Frenzy Pulse',
+    description: 'Multiply walk speed for a duration',
+    branch: 'Velocity',
+  },
+  {
     id: 'void_call',
     name: 'Void Call',
-    description: 'Force all humans to jump',
-    cooldown: 30_000,
+    description: 'Set turn-back rate to 0 for a duration',
+    branch: 'Devotion',
   },
   {
     id: 'dark_wave',
     name: 'Dark Wave',
-    description: 'Spawn 8 humans forced to jump',
-    cooldown: 25_000,
-  },
-  {
-    id: 'frenzy_pulse',
-    name: 'Frenzy Pulse',
-    description: 'Walk speed x3 for 10s',
-    cooldown: 45_000,
-  },
-  {
-    id: 'chain_of_souls',
-    name: 'Chain of Souls',
-    description: 'Chain jumps for 15s',
-    cooldown: 60_000,
-  },
-  {
-    id: 'silence',
-    name: 'Silence',
-    description: 'Birth rate = 0 for rest of day',
-    cooldown: 90_000,
+    description: 'Spawn a wave of humans instantly',
+    branch: 'Contagion',
   },
   {
     id: 'soul_harvest',
     name: 'Soul Harvest',
-    description: 'Double souls for 15s',
-    cooldown: 40_000,
+    description: 'Multiply soul gain for a duration',
+    branch: 'Machinery',
+  },
+  {
+    id: 'silence',
+    name: 'Silence',
+    description: 'Set birthratePerSec to 0 for a duration',
+    branch: 'Genesis',
   },
 ];

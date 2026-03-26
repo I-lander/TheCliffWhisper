@@ -57,61 +57,16 @@ export class JuiceEffects {
     });
   }
 
-  onCardPlayed(tier: string) {
-    let flashAlpha = 0.1;
-    let shakeDuration = 100;
-    let shakeIntensity = 0.005;
-    let flashColor = 0xffffff;
-
-    switch (tier) {
-      case 'common':
-        flashAlpha = 0.08;
-        shakeDuration = 80;
-        shakeIntensity = 0.003;
-        flashColor = 0xcccccc;
-        break;
-      case 'uncommon':
-        flashAlpha = 0.15;
-        shakeDuration = 120;
-        shakeIntensity = 0.008;
-        flashColor = 0xaa44ff;
-        break;
-      case 'rare':
-        flashAlpha = 0.25;
-        shakeDuration = 200;
-        shakeIntensity = 0.015;
-        flashColor = 0xff4444;
-        break;
-      case 'legendary':
-        flashAlpha = 0.4;
-        shakeDuration = 300;
-        shakeIntensity = 0.025;
-        flashColor = 0xffaa00;
-        break;
-    }
-
-    this.flashOverlay.setFillStyle(flashColor);
-    this.flashOverlay.setAlpha(flashAlpha);
+  onAbilityActivated() {
+    this.flashOverlay.setFillStyle(0xaaccff);
+    this.flashOverlay.setAlpha(0.15);
     this.scene.tweens.add({
       targets: this.flashOverlay,
       alpha: 0,
-      duration: shakeDuration * 2,
+      duration: 300,
       ease: 'Power2',
     });
-
-    this.scene.cameras.main.shake(shakeDuration, shakeIntensity);
-  }
-
-  onPenalty() {
-    this.flashOverlay.setFillStyle(0xff0000);
-    this.flashOverlay.setAlpha(0.3);
-    this.scene.tweens.add({
-      targets: this.flashOverlay,
-      alpha: 0,
-      duration: 500,
-      ease: 'Power2',
-    });
-    this.scene.cameras.main.shake(200, 0.01);
+    this.scene.cameras.main.shake(100, 0.005);
   }
 
   resetDaily() {}

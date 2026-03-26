@@ -1,20 +1,20 @@
 import { GameManager, GamePhase } from './GameManager';
 
 export interface PopulationStats {
-  spawnInterval: number; // ms between spawns (base: 800)
-  walkSpeed: number; // pixels per second (base: 160)
-  turnBackRate: number; // 0-1 probability (base: 0.3)
-  dragRate: number; // 0-1 chance to drag +1 human (base: 0.1)
-  birthRate: number; // humans added per day (base: 15)
-  clickCooldown: number; // ms between manual clicks (base: 500)
+  walkSpeed: number; // pixels per second (base: 150)
+  turnBackRate: number; // 0-1 probability (base: 0.35)
+  dragRate: number; // 0-1 chance a turning-back human causes another to turn back when crossing (base: 0.1)
+  birthRate: number; // integer — humans added per day at sunset (base: 15)
+  birthratePerSec: number; // integer — humans spawned per second during day (base: 0)
+  clickCooldown: number; // ms between clicks, shared player + auto-clickers (base: 1000)
 }
 
 const BASE_STATS: PopulationStats = {
-  spawnInterval: 600,
   walkSpeed: 150,
   turnBackRate: 0.35,
   dragRate: 0.1,
   birthRate: 15,
+  birthratePerSec: 0,
   clickCooldown: 1000,
 };
 
@@ -68,7 +68,8 @@ export class PopulationManager {
     this.turnedBack++;
   }
 
-  shouldSpawnExtra(): boolean {
+  /** When a human turns back and crosses another, chance the other turns back too */
+  shouldDragTurnBack(): boolean {
     return Math.random() < this.stats.dragRate;
   }
 
@@ -86,20 +87,19 @@ export class PopulationManager {
 
   /**
    * Max humans that can jump per day based on auto-clicker throughput.
-   * If birth rate exceeds this, extinction is mathematically impossible.
-   * Returns 0 when there are no auto-clickers (pure manual = no hard cap).
+   * Each auto-clicker fires once per cooldown cycle.
    */
   getMaxKillsPerDay(dayDurationMs: number, autoClickerCount: number): number {
     if (autoClickerCount === 0) return 0;
-    const spawnsPerDay = Math.floor(dayDurationMs / this.stats.spawnInterval) * autoClickerCount;
-    const avgWithDrag = spawnsPerDay * (1 + this.stats.dragRate);
-    const effectiveKills = avgWithDrag * (1 - this.stats.turnBackRate);
+    const clicksPerDay = Math.floor(dayDurationMs / this.stats.clickCooldown) * autoClickerCount;
+    const effectiveKills = clicksPerDay * (1 - this.stats.turnBackRate);
     return Math.floor(effectiveKills);
   }
 
   isDefeatInevitable(dayDurationMs: number, autoClickerCount: number): boolean {
-    if (autoClickerCount === 0) return false; // manual clicks, never mathematically impossible
-    return this.stats.birthRate >= this.getMaxKillsPerDay(dayDurationMs, autoClickerCount);
+    if (autoClickerCount === 0) return false;
+    const totalBirthPerDay = this.stats.birthRate + this.stats.birthratePerSec * (dayDurationMs / 1000);
+    return totalBirthPerDay >= this.getMaxKillsPerDay(dayDurationMs, autoClickerCount);
   }
 
   /** Snapshot of daily stats for the night summary */

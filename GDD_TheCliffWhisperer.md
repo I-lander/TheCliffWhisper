@@ -51,23 +51,25 @@ ________________________________________________/|
 │                        NIGHT                            │
 │  · Review previous day summary                          │
 │  · New decor element may appear on the cliff (random)   │
-│  · Spend Dark Faith in the single Constellation        │
+│  · Spend Dark Faith in the single Constellation         │
 └────────────────────┬────────────────────────────────────┘
                      │  Player clicks "End Night"
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   DAYTIME (CLICKER → IDLE)              │
 │  · Player clicks to spawn humans (no auto-spawn base)   │
-│  · Auto-clicker nodes (from constellation) add passive  │
-│    spawning on top of or instead of manual clicks       │
+│  · Auto-clicker nodes (from constellation) simulate     │
+│    real clicks with the same cooldown as the player     │
 │  · Humans walk towards cliff, jump or turn back         │
 │    based on active stats + decor effects                │
-│  · Each jump: +1 Dark Faith resource                    │
-│  · Cards may drop randomly based on Card Drop Rate stat │
-│  · Player plays dropped cards at chosen moments         │
+│  · When a human turns back and crosses another human,   │
+│    there is a chance (drag rate) the other turns back   │
+│  · Each jump: +1 Dark Faith resource (× soul mult.)    │
+│  · Abilities may be activated at chosen moments         │
+│  · birthratePerSec adds humans continuously (if > 0)   │
 │  · Birth rate increases population at sunset            │
 └────────────────────┬────────────────────────────────────┘
-                     │  Sunset (penalties, birth rate)
+                     │  Sunset (birth rate applied)
                      ▼
                   (back to Night)
 ```
@@ -90,7 +92,7 @@ Night is the **only moment of full player control**. There is no time limit — 
 
 **Dark Faith budget:**
 
-- Earned during the previous day: **1 per human that jumped**.
+- Earned during the previous day: **1 per human that jumped** (multiplied by soul multiplier).
 - Unspent Dark Faith **carries over** to future nights.
 - Each constellation node has a cost in Dark Faith. Once purchased, it is **permanent for the rest of the run**.
 - The total cost of all nodes far exceeds what a single run can provide — every investment is a permanent trade-off.
@@ -104,38 +106,40 @@ Daytime is the core active phase. It begins as a **clicker game** and gradually 
 
 - **By default, no humans spawn automatically.**
 - **Manual click** on the screen (cliff area) = spawn 1 human (subject to turnBackRate and normal walk logic).
-- **Auto-clicker nodes** (unlocked via constellation) periodically spawn humans passively, at an interval determined by the node tier. Multiple auto-clicker nodes stack additively.
+- **Click cooldown** applies equally to the player's manual clicks and all auto-clickers. A single shared cooldown governs the minimum interval between any click event.
+- **Auto-clicker nodes** (unlocked via constellation) simulate real clicks. Each auto-clicker fires once per cooldown cycle, just like the player. Multiple auto-clickers stack additively.
+- **birthratePerSec** (base: 0, unlocked via constellation) adds humans continuously during the day, independent of clicks. These humans behave normally (walk, turn-back, etc.).
+
+**Drag rate (contagion mechanic):**
+
+- When a human **turns back** and walks in the opposite direction, each time it **crosses another human** still walking toward the cliff, there is a chance equal to the **drag rate** that the crossed human also turns back.
+- This creates a contagion effect: a single turn-back can cascade into multiple reversals if drag rate is high.
+- This is the player's secondary enemy — high drag rate compounds the turn-back problem.
 
 **Dark Faith gain:**
 
-- Each human that jumps grants **+1 Dark Faith**, visible in real-time on the UI.
-
-**Card drops:**
-
-- No deck or pre-drawn hand. Cards drop randomly during the day based on the **Card Drop Rate** stat (see section 5).
-- A dropped card appears in the player's hand and can be played at any moment that day.
-- Cards not played by sunset trigger their penalty effect.
+- Each human that jumps grants **Dark Faith equal to the soul multiplier**, visible in real-time on the UI.
 
 **The player cannot:**
 
 - Modify the constellation mid-day
-- Trigger forced waves (only cards may do this)
 
 ---
 
 ## 5. Stats
 
-Stats are modified by **constellations** (player choices), **decor elements** (random, work against the player), and **cards** (temporary effects). Everything is behavioral and probabilistic, applied globally.
+Stats are modified by **constellations** (player choices) and **decor elements** (random, work against the player). Everything is behavioral and probabilistic, applied globally.
 
-| Stat                 | Description                                                                  | Favorable direction                               |
-| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------- |
-| **Walk speed**       | Time for a human to reach the cliff edge                                     | ↑ Faster = less exposure to turn-back chance      |
-| **Turn-back rate**   | Probability a human reverses before reaching the edge                        | ↓ Reducing this is the primary gameplay challenge |
-| **Drag rate**        | Chance a human brings one additional human along when spawning               | ↑ Multiplier effect on throughput                 |
-| **Birth rate**       | Humans added to the abstract population count per day                        | ↓ The player's main enemy                         |
-| **Dark Faith**       | Resource earned per jump (+1 each). Spent at night in the Constellation      | ↑ Every death feeds power                         |
-| **Card Drop Rate**   | % chance per jump that a card drops into the player's hand (base: 0%)        | ↑ More cards = more punctual decision moments     |
-| **Auto-click count** | Number of active auto-clicker nodes. Each spawns 1 human at its own interval | ↑ More passive spawns per second                  |
+| Stat                    | Base value | Description                                                                            | Favorable direction                                |
+| ----------------------- | ---------- | -------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Walk speed**          | 150 px/s   | Speed at which humans walk toward the cliff edge                                       | ↑ Faster = less exposure to turn-back and drag     |
+| **Turn-back rate**      | 0.35       | Probability (0-1) a human reverses before reaching the edge                            | ↓ Reducing this is the primary gameplay challenge  |
+| **Drag rate**           | 0.10       | Probability (0-1) a turning-back human causes another to also turn back when crossing  | ↓ Reducing contagion protects throughput            |
+| **Birth rate**          | 15/day     | Humans added to the population at sunset (integer)                                     | ↓ The player's main enemy                          |
+| **birthratePerSec**     | 0/s        | Humans spawned per second during the day (integer). Accumulates and spawns whole humans | ↓ Secondary pressure (unlocked via constellation)  |
+| **Click cooldown**      | 1000 ms    | Minimum interval between any click event (player or auto-clicker)                      | ↓ Faster clicks = higher throughput                |
+| **Auto-clicker count**  | 0          | Number of auto-clickers, each fires once per cooldown cycle                            | ↑ More passive spawns                              |
+| **Soul multiplier**     | 1.0×       | Dark Faith earned per jump                                                             | ↑ Every death feeds more power                     |
 
 ---
 
@@ -156,14 +160,14 @@ The cliff edge is a **1D tilemap**. Over the course of a run, decor elements app
 
 ### Decor catalog
 
-| Element        | Sprite      | Effect (cumulative, permanent) |
-| -------------- | ----------- | ------------------------------ |
-| **House**      | House tile  | Birth rate +5/day              |
-| **Church**     | Church tile | Turn-back rate +0.05           |
-| **Lighthouse** | Tower tile  | Walk speed -15%                |
-| **Tree**       | Tree tile   | Spawn interval +100ms          |
-| **Tombstone**  | Cross tile  | Turn-back rate +0.03           |
-| **Wall**       | Wall tile   | Walk speed -10%                |
+| Element        | Sprite      | Effect (cumulative, permanent)     |
+| -------------- | ----------- | ---------------------------------- |
+| **House**      | House tile  | Birth rate +5/day                  |
+| **Church**     | Church tile | Turn-back rate +0.05               |
+| **Lighthouse** | Tower tile  | Walk speed -15%                    |
+| **Tree**       | Tree tile   | birthratePerSec +1/s               |
+| **Tombstone**  | Cross tile  | Turn-back rate +0.03               |
+| **Wall**       | Wall tile   | Walk speed -10%                    |
 
 ### Design intent
 
@@ -173,239 +177,316 @@ This creates:
 
 - **Narrative escalation**: the humans are building a life right at the edge.
 - **Visual progression**: the scene evolves over the run.
-- **Strategic variance**: each run has different decor, requiring different constellation/card responses.
+- **Strategic variance**: each run has different decor, requiring different constellation responses.
 - **Readable pressure**: the player can see and count the elements to understand why stats are shifting.
 
 ---
 
 ## 6. Skill Tree — The Constellation
 
-There is **one single Constellation** for the entire game. It is a large branching tree with distinct thematic branches. At night, the player spends **Dark Faith** (1 per jump earned during the day) to unlock nodes. Effects are **cumulative and permanent** for the rest of the run.
+There is **one single Constellation** for the entire game. It is structured as a **central star** with **5 main branches**, each of which forks into **sub-branches**. At night, the player spends **Dark Faith** (earned from jumps during the day) to unlock nodes. Effects are **cumulative and permanent** for the rest of the run.
 
 - Unspent Dark Faith carries over between nights.
-- The total cost of all nodes far exceeds a single run's supply — every choice is a meaningful trade-off.
-- Nodes must be unlocked in order within their branch (parent node required). Cross-branch connections exist for capstone nodes.
+- The total cost of all nodes (~3845 Dark Faith) far exceeds a single run's supply — every choice is a meaningful trade-off.
+- Nodes must be unlocked in order within their branch (parent node required).
 - **First night:** player starts with 5 Dark Faith to allow unlocking the tree's root node immediately.
 
-### Branch Overview
+### Structure
 
-#### 🖱 Auto-Clicker Branch — Passive Spawning
+```
+                     [Velocity]
+                    /    |    \
+              passifs    |    Frenzy Pulse
+                         |
+       [Devotion]-------ROOT-------[Contagion]
+         / |  \                      / |  \
+   passifs | Void Call         passifs | Dark Wave
+           |                          |
+      [Machinery]              [Genesis]
+        / |  \                  / |  \
+  passifs | Soul Harvest  passifs | Silence
+```
 
-Unlocks passive human spawning, graduating the experience from clicker to idle.
+Each main branch has:
+- A **trunk** (10 nodes) — the primary stat line
+- **Fork A** (4 nodes) — deeper passive investment, branching from trunk node 4
+- **Fork B** (3 nodes) — specialized passive, branching from trunk node 7
+- **Ability sub-branch** (6 nodes) — unlocks and upgrades the branch's ability, branching from trunk node 5
 
-| Node       | Cost | Effect                 |
-| ---------- | ---- | ---------------------- |
-| Whisper    | 3    | +1 auto-spawn every 4s |
-| Echo       | 5    | +1 auto-spawn every 3s |
-| Voice      | 8    | +1 auto-spawn every 2s |
-| The Chorus | 12   | +1 auto-spawn every 1s |
+**Total: 115 nodes** (5 branches × 23 nodes)
 
-#### 👁 Faith Branch — Turn-back Rate
+### Cost Curve
 
-Reduces the probability that a human turns back before the edge.
+Costs escalate exponentially to ensure long, satisfying progression:
 
-| Node       | Cost | Effect               |
-| ---------- | ---- | -------------------- |
-| Linger     | 3    | Turn-back rate -0.04 |
-| Doubt      | 5    | Turn-back rate -0.06 |
-| Conviction | 8    | Turn-back rate -0.08 |
-| No Return  | 12   | Turn-back rate -0.12 |
+| Position | Trunk | Fork A | Fork B | Ability sub-branch |
+| -------- | ----- | ------ | ------ | ------------------ |
+| Node 1   | 3     | 10     | 30     | 20 (unlock)        |
+| Node 2   | 5     | 18     | 45     | 35                 |
+| Node 3   | 8     | 28     | 65     | 50                 |
+| Node 4   | 12    | 42     | —      | 70                 |
+| Node 5   | 18    | —      | —      | 100                |
+| Node 6   | 25    | —      | —      | 120                |
+| Node 7   | 35    | —      | —      | —                  |
+| Node 8   | 45    | —      | —      | —                  |
+| Node 9   | 60    | —      | —      | —                  |
+| Node 10  | 80    | —      | —      | —                  |
 
-#### ⚡ Tide Branch — Drag Rate
-
-Increases the chance a spawned human drags additional humans along.
-
-| Node          | Cost | Effect          |
-| ------------- | ---- | --------------- |
-| Resonance     | 3    | Drag rate +0.06 |
-| Chain Pull    | 5    | Drag rate +0.10 |
-| Mass Calling  | 8    | Drag rate +0.14 |
-| Mass Hysteria | 12   | Drag rate +0.20 |
-
-#### ✦ Void Branch — Birth Rate
-
-Reduces the birth rate, weakening the player's main enemy.
-
-| Node                | Cost | Effect          |
-| ------------------- | ---- | --------------- |
-| Whispered Doubt     | 4    | Birth rate -10% |
-| Fading Hope         | 7    | Birth rate -15% |
-| Empty Cradles       | 11   | Birth rate -20% |
-| Silence of the Womb | 16   | Birth rate -25% |
-
-#### 🃏 Omen Branch — Card Drop Rate
-
-Unlocks and improves the chance that a card drops mid-day per jump.
-
-| Node           | Cost | Effect                           |
-| -------------- | ---- | -------------------------------- |
-| Dark Omen      | 4    | Card Drop Rate: 5% per jump      |
-| Ill Sign       | 7    | Card Drop Rate: +5% (10% total)  |
-| Prophecy       | 11   | Card Drop Rate: +10% (20% total) |
-| The Revelation | 16   | Card Drop Rate: +15% (35% total) |
-
-#### 🌊 Haste Branch — Walk Speed
-
-Increases walk speed so humans reach the edge faster and are less exposed to turn-back.
-
-| Node            | Cost | Effect          |
-| --------------- | ---- | --------------- |
-| Swift Step      | 3    | Walk speed +10% |
-| Fevered March   | 5    | Walk speed +15% |
-| Relentless Tide | 9    | Walk speed +20% |
-
-**Design constraint**: There is no guaranteed path through the whole tree. The player must choose which branches to prioritize each run, shaping a unique play style (aggressive clicker, idle auto-farmer, card-focused, etc.).
+**Per branch total:** ~291 (trunk) + ~98 (fork A) + ~140 (fork B) + ~395 (ability) = **~924 Dark Faith**
+**Full tree total:** **~4620 Dark Faith**
 
 ---
 
-## 7. Cards
+### 6.1 Branch: Velocity (Walk Speed)
 
-### 7.1 Card Acquisition — Drop System
+Primary stat: **walkSpeed**. Faster humans reach the edge sooner, reducing exposure to turn-back and drag contagion.
 
-Cards are **not drawn from a pre-built deck**. Instead, they drop randomly during the day.
+**Trunk** (10 nodes):
 
-- **Card Drop Rate** (stat, base: 0%) — per jump, there is a % chance a random card drops into the player's hand.
-- The omen branch (constellation) is the only way to raise this rate.
-- Max hand size: **5 cards**. If the hand is full, no new cards drop.
-- Cards not played by sunset trigger their **penalty effect** automatically.
-- Cards have no memory between days: the hand resets at each new day (unplayed cards penalize first, then are discarded).
+| # | Name            | Cost | Effect         |
+|---|-----------------|------|----------------|
+| 1 | Swift Step      | 3    | walkSpeed +3   |
+| 2 | Quickened Pace  | 5    | walkSpeed +5   |
+| 3 | Hurried Stride  | 8    | walkSpeed +5   |
+| 4 | Fevered March   | 12   | walkSpeed +8   |
+| 5 | Driven Forward  | 18   | walkSpeed +8   |
+| 6 | Rushing Tide    | 25   | walkSpeed +10  |
+| 7 | Relentless Gait | 35   | walkSpeed +10  |
+| 8 | Blinding Speed  | 45   | walkSpeed +12  |
+| 9 | Wind Walker     | 60   | walkSpeed +15  |
+| 10| Terminal Velocity| 80  | walkSpeed +20  |
 
-#### 🩶 COMMON — Light penalty (or none)
+*Trunk total: +96 walkSpeed*
 
-**Black Tide**
+**Fork A** (from node 4, 4 nodes): +6, +8, +10, +12 walkSpeed
+**Fork B** (from node 7, 3 nodes): +15, +18, +20 walkSpeed
 
-> _"They feel the call. Just a little stronger."_
+*Branch total walkSpeed: +152*
 
-- Effect: Reduces spawn interval by 50% for 20 seconds
-- Penalty if unplayed: none (missed bonus)
+**Ability: Frenzy Pulse** (from node 5, 6 nodes):
 
-**Evening Mist**
+| # | Cost | Effect                                              |
+|---|------|-----------------------------------------------------|
+| 1 | 20   | **Unlock**: walkSpeed ×2 for 8s, cooldown 45s       |
+| 2 | 35   | Duration +4s (12s)                                   |
+| 3 | 50   | Multiplier ×2.5                                      |
+| 4 | 70   | Cooldown -10s (35s)                                  |
+| 5 | 100  | Duration +4s (16s), multiplier ×3                    |
+| 6 | 120  | Cooldown -10s (25s), duration +4s (20s)              |
 
-> _"The path back disappears into the fog."_
-
-- Effect: Reduces turn-back rate by 30% for 15 seconds
-- Penalty if unplayed: none
-
----
-
-#### 🟣 UNCOMMON — Moderate penalty
-
-**Whisper of the Abyss**
-
-> _"He has been speaking to their dreams for weeks."_
-
-- Effect: The next human to spawn automatically drags 2 additional humans with them
-- Penalty if unplayed: +20% birth rate until next sunset
-
-**Suspended Hour**
-
-> _"The sun hesitates. One more minute."_
-
-- Effect: Extends current day duration by 60 seconds
-- Penalty if unplayed: +15% birth rate this day
-
-**Vow of Fragility**
-
-> _"Their feet can no longer turn around."_
-
-- Effect: Suppresses all turn-back rate for 30 seconds
-- Penalty if unplayed: +20% birth rate + turn-back rate increased by 15% for this day
+*Final: walkSpeed ×3 for 20s, cooldown 25s*
 
 ---
 
-#### 🔴 RARE — Heavy penalty
+### 6.2 Branch: Devotion (Turn-back Rate)
 
-**Call of the Void**
+Primary stat: **turnBackRate**. Reducing this probability is the most direct path to higher kill throughput.
 
-> _"It is not a fall. It is a return."_
+**Trunk** (10 nodes):
 
-- Effect: Immediately spawns 8 humans in a single wave
-- Penalty if unplayed: +40% birth rate + turn-back rate doubled until next sunset
+| # | Name            | Cost | Effect              |
+|---|-----------------|------|---------------------|
+| 1 | Linger          | 3    | turnBackRate -0.01  |
+| 2 | Hesitation      | 5    | turnBackRate -0.01  |
+| 3 | Doubt           | 8    | turnBackRate -0.02  |
+| 4 | Wavering Faith  | 12   | turnBackRate -0.02  |
+| 5 | Fading Hope     | 18   | turnBackRate -0.02  |
+| 6 | Conviction      | 25   | turnBackRate -0.03  |
+| 7 | Blind Devotion  | 35   | turnBackRate -0.03  |
+| 8 | No Return       | 45   | turnBackRate -0.03  |
+| 9 | The Abyss Calls | 60   | turnBackRate -0.04  |
+| 10| Absolute Faith  | 80   | turnBackRate -0.04  |
 
-**Soul Eclipse**
+*Trunk total: -0.25 turnBackRate*
 
-> _"The light that guided them has gone out."_
+**Fork A** (from node 4, 4 nodes): -0.02, -0.03, -0.03, -0.04 turnBackRate
+**Fork B** (from node 7, 3 nodes): -0.03, -0.04, -0.05 turnBackRate
 
-- Effect: Blocks birth rate for the remainder of the current day
-- Penalty if unplayed: Birth rate doubled until end of day AND turn-back rate +30%
+*Branch total turnBackRate: -0.49*
 
-**Cursed Procession**
+**Ability: Void Call** (from node 5, 6 nodes):
 
-> _"They walk. They sing. They do not stop."_
+| # | Cost | Effect                                              |
+|---|------|-----------------------------------------------------|
+| 1 | 20   | **Unlock**: turnBackRate = 0 for 5s, cooldown 30s   |
+| 2 | 35   | Duration +3s (8s)                                    |
+| 3 | 50   | Cooldown -5s (25s)                                   |
+| 4 | 70   | Duration +4s (12s)                                   |
+| 5 | 100  | Cooldown -5s (20s)                                   |
+| 6 | 120  | Duration +5s (17s), cooldown -5s (15s)               |
 
-- Effect: For 45 seconds, every human who jumps automatically triggers the next spawn
-- Penalty if unplayed: +30% birth rate + next night duration is halved
-
----
-
-#### ⚫ LEGENDARY — Severe penalty, single use per run
-
-**The Last Sermon**
-
-> _"His voice convinced empires. It will convince a species."_
-
-- Effect: Instantly reduces population by 5%, suppresses all turn-back for 60 seconds
-- Penalty if unplayed: Birth rate +60% for the remainder of the run
-
-**Memory of Extinction**
-
-> _"He remembers having succeeded before."_
-
-- Effect: Reveals the birth rate curve for the next 3 days + increases spawn rate by 40% this day
-- Penalty if unplayed: Birth rate +50%, turn-back rate +40% for 2 days
+*Final: turnBackRate = 0 for 17s, cooldown 15s*
 
 ---
 
-### 7.4 Power Tiers & Associated Penalties
+### 6.3 Branch: Contagion (Drag Rate)
 
-The power/penalty relationship is proportional and must be clearly communicated on each card's UI:
+Primary stat: **dragRate**. Drag rate represents the contagion of turn-back: when a human turns back and crosses another, there is a chance the other follows. Reducing this protects throughput. However, this branch **increases** drag rate — the investment here is about accepting the contagion mechanic in exchange for other benefits.
 
-| Tier          | Card effect                       | Penalty if unplayed                        |
-| ------------- | --------------------------------- | ------------------------------------------ |
-| **Common**    | Small punctual boost              | No penalty — missed bonus only             |
-| **Uncommon**  | Notable impact on day flow        | Temporary birth rate increase              |
-| **Rare**      | Major impact on the day           | Birth rate boost + turn-back rate increase |
-| **Legendary** | Game-altering, single use per run | Severe, long-lasting debuff                |
+> **Design note:** The Contagion branch is unique — its trunk nodes **increase** a stat that works against the player (drag rate). The value comes from unlocking Dark Wave (mass spawning) and the fork nodes which provide mixed benefits. This creates a risk/reward dynamic: investing in Contagion gives access to powerful burst spawning at the cost of higher contagion.
 
-### 7.5 Card Play Decision Logic
+**Trunk** (10 nodes):
 
-Timing is the player's main daytime skill, now combined with the risk of a card dropping at the wrong moment.
+| # | Name            | Cost | Effect            |
+|---|-----------------|------| ------------------|
+| 1 | Whispered Doubt | 3    | dragRate +0.01    |
+| 2 | Shared Glance   | 5    | dragRate +0.01    |
+| 3 | Herd Instinct   | 8    | dragRate +0.02    |
+| 4 | Mass Anxiety    | 12   | dragRate +0.02    |
+| 5 | Panic Spread    | 18   | dragRate +0.02    |
+| 6 | Chain Reaction  | 25   | dragRate +0.03    |
+| 7 | Mob Mentality   | 35   | dragRate +0.03    |
+| 8 | Hysteria        | 45   | dragRate +0.03    |
+| 9 | Cascade Effect  | 60   | dragRate +0.04    |
+| 10| Mass Psychosis  | 80   | dragRate +0.04    |
 
-Examples of meaningful decisions:
+*Trunk total: +0.25 dragRate*
 
-- A _Call of the Void_ drop when turn-back rate is high = consider declining the play and taking the penalty intentionally.
-- Holding _Suspended Hour_ for a productive late-day stretch rather than playing it early.
-- Choosing to invest in the Omen branch early = more cards but higher penalty risk if clicks are infrequent.
+**Fork A** (from node 4, 4 nodes): +0.02, +0.03, +0.03, +0.04 dragRate
+**Fork B** (from node 7, 3 nodes): +0.04, +0.05, +0.06 dragRate
+
+*Branch total dragRate: +0.50*
+
+**Ability: Dark Wave** (from node 5, 6 nodes):
+
+| # | Cost | Effect                                              |
+|---|------|-----------------------------------------------------|
+| 1 | 20   | **Unlock**: Spawn 5 humans instantly, cooldown 30s   |
+| 2 | 35   | +3 humans (8 total)                                  |
+| 3 | 50   | Cooldown -5s (25s)                                   |
+| 4 | 70   | +5 humans (13 total)                                 |
+| 5 | 100  | Cooldown -5s (20s)                                   |
+| 6 | 120  | +7 humans (20 total), cooldown -5s (15s)             |
+
+*Final: Spawn 20 humans instantly, cooldown 15s*
+
+---
+
+### 6.4 Branch: Machinery (Auto-clickers & Click Cooldown)
+
+Primary stats: **clickCooldown** and **autoClickerCount**. This branch transitions the game from clicker to idle. The cooldown applies identically to the player's manual clicks and all auto-clickers.
+
+**Trunk** (10 nodes):
+
+| # | Name              | Cost | Effect                      |
+|---|-------------------|------|-----------------------------|
+| 1 | Loose Gear        | 3    | clickCooldown -30ms         |
+| 2 | First Automaton   | 5    | autoClickerCount +1         |
+| 3 | Oiled Mechanism   | 8    | clickCooldown -40ms         |
+| 4 | Second Automaton  | 12   | autoClickerCount +1         |
+| 5 | Precision Gears   | 18   | clickCooldown -50ms         |
+| 6 | Third Automaton   | 25   | autoClickerCount +1         |
+| 7 | Clockwork Engine  | 35   | clickCooldown -60ms         |
+| 8 | Fourth Automaton  | 45   | autoClickerCount +1         |
+| 9 | Perpetual Motion  | 60   | clickCooldown -80ms         |
+| 10| The Machine God   | 80   | autoClickerCount +2         |
+
+*Trunk total: -260ms clickCooldown, +6 autoClickerCount*
+
+**Fork A** (from node 4, 4 nodes): -40ms, -50ms, -60ms, -80ms clickCooldown
+**Fork B** (from node 7, 3 nodes): +1, +2, +3 autoClickerCount
+
+*Branch total: -490ms clickCooldown, +12 autoClickerCount*
+
+**Ability: Soul Harvest** (from node 5, 6 nodes):
+
+| # | Cost | Effect                                              |
+|---|------|-----------------------------------------------------|
+| 1 | 20   | **Unlock**: soulMultiplier ×2 for 10s, cooldown 40s |
+| 2 | 35   | Duration +5s (15s)                                   |
+| 3 | 50   | Multiplier ×2.5                                      |
+| 4 | 70   | Cooldown -10s (30s)                                  |
+| 5 | 100  | Duration +5s (20s), multiplier ×3                    |
+| 6 | 120  | Cooldown -10s (20s)                                  |
+
+*Final: soulMultiplier ×3 for 20s, cooldown 20s*
+
+---
+
+### 6.5 Branch: Genesis (Soul Multiplier & birthratePerSec)
+
+Primary stats: **soulMultiplier** and **birthratePerSec**. This branch accelerates Dark Faith income but also introduces continuous human spawning (birthratePerSec) — a double-edged sword that pressures the player while funding faster constellation progress.
+
+**Trunk** (10 nodes):
+
+| # | Name              | Cost | Effect               |
+|---|-------------------|------|-----------------------|
+| 1 | Dark Ember        | 3    | soulMultiplier +0.05 |
+| 2 | Soul Spark        | 5    | soulMultiplier +0.05 |
+| 3 | Growing Hunger    | 8    | soulMultiplier +0.10 |
+| 4 | Death's Tithe     | 12   | soulMultiplier +0.10 |
+| 5 | Reaping Wind      | 18   | soulMultiplier +0.10 |
+| 6 | Soul Furnace      | 25   | soulMultiplier +0.15 |
+| 7 | Dark Harvest      | 35   | soulMultiplier +0.15 |
+| 8 | Essence Drain     | 45   | soulMultiplier +0.20 |
+| 9 | Death's Bounty    | 60   | soulMultiplier +0.20 |
+| 10| The Soul Singularity| 80 | soulMultiplier +0.25 |
+
+*Trunk total: +1.35 soulMultiplier*
+
+**Fork A** (from node 4, 4 nodes): soulMultiplier +0.10, +0.15, +0.20, +0.25
+**Fork B** (from node 7, 3 nodes): birthratePerSec +1, +1, +2 /s
+
+*Branch total: soulMultiplier +2.05, birthratePerSec +4/s*
+
+**Ability: Silence** (from node 5, 6 nodes):
+
+| # | Cost | Effect                                               |
+|---|------|------------------------------------------------------|
+| 1 | 20   | **Unlock**: birthratePerSec = 0 for 15s, cooldown 60s|
+| 2 | 35   | Duration +5s (20s)                                    |
+| 3 | 50   | Cooldown -10s (50s)                                   |
+| 4 | 70   | Duration +5s (25s)                                    |
+| 5 | 100  | Cooldown -10s (40s)                                   |
+| 6 | 120  | Duration +10s (35s), cooldown -10s (30s)              |
+
+*Final: birthratePerSec = 0 for 35s, cooldown 30s*
+
+---
+
+### 6.6 Design Constraints
+
+- **No guaranteed full unlock.** The total tree cost (~4620 Dark Faith) far exceeds what a single run provides. The player must specialize.
+- **Abilities gate behind mid-branch investment.** You must invest 46 Dark Faith in a trunk (nodes 1-5) before accessing the ability unlock node. Maxing an ability costs ~395 more.
+- **Forks reward deep specialization.** Fork A rewards mid-depth commitment; Fork B rewards deep investment.
+- **The Contagion branch is deliberately punishing** — its trunk increases drag rate (bad for the player). The payoff is Dark Wave's burst spawning power.
+
+---
+
+## 7. Abilities
+
+Abilities are **active skills** unlocked and upgraded through their respective constellation branch. Each ability has a cooldown and can only be activated during the daytime phase. Only one ability can be active at a time.
+
+| Ability        | Branch     | Base effect                          | Base duration | Base cooldown |
+| -------------- | ---------- | ------------------------------------ | ------------- | ------------- |
+| Frenzy Pulse   | Velocity   | walkSpeed multiplied                 | 8s            | 45s           |
+| Void Call      | Devotion   | turnBackRate set to 0                | 5s            | 30s           |
+| Dark Wave      | Contagion  | Spawn N humans instantly (one-shot)  | —             | 30s           |
+| Soul Harvest   | Machinery  | soulMultiplier multiplied            | 10s           | 40s           |
+| Silence        | Genesis    | birthratePerSec set to 0            | 15s           | 60s           |
+
+### Ability rules
+
+- Abilities are **not available** during night.
+- Dark Wave is instant (no duration) — it spawns humans that then behave normally.
+- Silence only affects birthratePerSec, not the sunset birth rate.
+- Ability upgrades (duration, cooldown, multiplier) are permanent for the run, unlocked via constellation nodes.
 
 ---
 
 ## 8. Meta Progression
 
-### 8.1 Card Pool Unlocks
-
-Cards are unlocked **permanently** by completing specific in-game actions. Once unlocked, they are added to the global drop pool (eligible to drop during any future run's daytime).
-
-| Unlock condition                         | Card unlocked                        |
-| ---------------------------------------- | ------------------------------------ |
-| First victory                            | **Memory of Extinction** (Legendary) |
-| 50 humans jumped in a single day         | **Call of the Void** (Rare)          |
-| Complete a run without any card dropping | **Evening Mist** (Common)            |
-| Suffer 3 heavy penalties in a single run | **Cursed Procession** (Rare)         |
-| Reach population 0 in fewer than 4 days  | **The Last Sermon** (Legendary)      |
-
-Unlock conditions are designed to incentivize experimentation and non-obvious strategies. They should never require grinding — each is a one-time achievement.
-
-### 8.2 Run Modifiers
+### 8.1 Run Modifiers
 
 At the start of each run, one **random modifier** is offered from the unlocked pool. Modifiers adjust difficulty and create run variety:
 
 | Modifier              | Effect                                    |
 | --------------------- | ----------------------------------------- |
 | _Abundant Population_ | +50% starting population                  |
-| _Silent Cliff_        | Card Drop Rate halved                     |
 | _Natural Resilience_  | Base turn-back rate increased by 20%      |
 | _Baby Boom_           | Birth rate accelerates every 2 days       |
 | _Mute God_            | Manual click spawns 2 humans instead of 1 |
+| _Contagious Fear_     | Base drag rate doubled                    |
 
 ---
 
@@ -421,11 +502,13 @@ These are target values for implementation. Adjust through playtesting but treat
 | Day duration               | ~3 minutes                       |
 | Starting population        | 1,000 humans                     |
 | Base birth rate            | +15 humans/day                   |
+| Base birthratePerSec       | 0/s integer (requires Genesis branch) |
 | Decor spawn chance (base)  | 40% per night, +10%/day, cap 90% |
-| Base Card Drop Rate        | 0% (requires Omen branch)        |
-| Max hand size              | 5 cards                          |
 | Dark Faith start (night 1) | 5                                |
-| Auto-clicker base count    | 0 (requires Auto-Clicker branch) |
+| Auto-clicker base count    | 0 (requires Machinery branch)    |
+| Click cooldown (base)      | 1000ms (shared player + AC)      |
+| Soul multiplier (base)     | 1.0×                             |
+| Full tree cost             | ~4620 Dark Faith                 |
 
 ---
 
@@ -437,8 +520,8 @@ This table describes the **emotional target** for each phase. Implementation dec
 | --------------------- | ------------------------------------------------------------------------------- |
 | Night                 | Silent architect. Control, anticipation, quiet planning                         |
 | Daytime (early runs)  | Frantic clicking. Urgency, building rhythm                                      |
-| Daytime (later runs)  | Contemplative tension. A machine humming, occasionally disrupted by a card drop |
-| Unplayed card penalty | Legible punishment, never feels unfair                                          |
+| Daytime (later runs)  | Contemplative tension. A machine humming, abilities used at key moments         |
+| Ability activation    | Decisive power — the god's hand revealed. Timing matters                        |
 | Victory               | Cold satisfaction. No fanfare — the silence of an empty cliff                   |
 | Defeat                | Immediate understanding of the mistake. Desire to rebuild                       |
 
@@ -450,12 +533,14 @@ These are hard rules for Claude Code. Do not deviate without explicit instructio
 
 - **No zone effects.** All stat modifications are global and probabilistic.
 - **Click-to-spawn is the base mechanic.** No humans spawn without player input by default. Auto-clickers supplement but never replace the click mechanic until explicitly unlocked.
-- **Dark Faith is the sole constellation currency.** Earned only from jumps, never granted for free (except the 5 starting Faith on night 1).
-- **One constellation, one tree.** There is no multiple-tree system. All upgrades live in one structure.
-- **Cards drop, they are not drawn.** There is no pre-run deck selection and no morning hand. Cards enter play exclusively through the drop system.
+- **Shared cooldown.** The click cooldown applies identically to the player's manual clicks and all auto-clickers. There is no separate spawn interval.
+- **Dark Faith is the sole constellation currency.** Earned only from jumps (× soul multiplier), never granted for free (except the 5 starting Faith on night 1).
+- **One constellation, one tree.** There is no multiple-tree system. All upgrades live in one structure with a central star and radiating branches.
+- **No cards.** There is no card system. All player agency during daytime comes from clicking and ability activation.
 - **No visual population.** The population count is always a number, never a crowd or visual mass.
 - **One screen only.** No navigation between screens during a run. Night and day happen on the same visual layout — sky changes from stars to sun, the cliff remains.
-- **Card penalties are automatic.** At sunset, any unplayed card triggers its penalty without player confirmation.
 - **Constellation effects are permanent within a run.** Once a node is unlocked, its effect applies for the rest of the run. Dark Faith spent cannot be recovered.
 - **Decor elements are permanent and non-destructible.** Once a decor element appears on the cliff, it stays for the rest of the run.
 - **No automatic birth rate escalation.** All difficulty scaling comes from decor elements appearing on the cliff.
+- **Drag rate is contagion.** When a human turns back and crosses another, there is a probability (drag rate) the other turns back too. Drag rate does NOT cause humans to follow each other toward the cliff.
+- **Human counts are always integers.** Population, birthRate, birthratePerSec, and all spawn counts must be whole numbers. No fractional humans. birthratePerSec spawns 1 whole human per tick at the given rate.

@@ -11,10 +11,10 @@ import { AbilityUI } from '../abilities/AbilityUI';
 import { removeSplashScreen } from '../utils/utils';
 import { UIScene } from './UIScene';
 
-const SKY_COLORS: Record<GamePhase, number> = {
-  [GamePhase.Night]: 0x0a0a1a,
-  [GamePhase.Daytime]: 0x424f66,
-  [GamePhase.Sunset]: 0x1a1020,
+const SKY_COLORS: Record<GamePhase, { r: number; g: number; b: number }> = {
+  [GamePhase.Night]: { r: 0x0a, g: 0x0a, b: 0x1a },
+  [GamePhase.Daytime]: { r: 0x42, g: 0x4f, b: 0x66 },
+  [GamePhase.Sunset]: { r: 0x1a, g: 0x10, b: 0x20 },
 };
 
 export class MainScene extends CustomScene {
@@ -33,6 +33,9 @@ export class MainScene extends CustomScene {
   canvasHeight: number = 0;
   tileSize: number = 0;
 
+  // Sky color transition (initialized in create() from current phase)
+  private skyColor = { r: 0, g: 0, b: 0 };
+
   // Cliff geometry
   private cliffEdgeX: number = 0;
   private groundY: number = 0;
@@ -49,9 +52,8 @@ export class MainScene extends CustomScene {
   private cooldownBarBg!: Phaser.GameObjects.Rectangle;
 
   // Ability timed effects
-  private chainJumpActive: boolean = false;
   private soulHarvestActive: boolean = false;
-  private savedBirthRate: number = 0;
+  private savedBirthratePerSec: number = 0;
 
   // Camera drag
   private isDragging: boolean = false;
@@ -158,21 +160,29 @@ export class MainScene extends CustomScene {
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.endDayBtn.setColor('#aaccff'));
     this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => this.gameManager.skipPhase());
 
+    // Set initial sky color from current game phase
+    const initialSky = SKY_COLORS[this.gameManager.getPhase()];
+    this.skyColor.r = initialSky.r;
+    this.skyColor.g = initialSky.g;
+    this.skyColor.b = initialSky.b;
+    this.cameras.main.setBackgroundColor(
+      Phaser.Display.Color.GetColor(initialSky.r, initialSky.g, initialSky.b),
+    );
+
     this.gameManager.onPhaseChange((phase) => {
-      this.cameras.main.setBackgroundColor(SKY_COLORS[phase]);
+      this.transitionSkyColor(SKY_COLORS[phase]);
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
         this.clickCooldownTimer = 0;
-        this.chainJumpActive = false;
         this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
       }
       if (phase === GamePhase.Sunset) {
         this.forceAllTurnBack();
-        // Restore birth rate if Silence was active
-        if (this.savedBirthRate > 0) {
-          this.populationManager.stats.birthRate = this.savedBirthRate;
-          this.savedBirthRate = 0;
+        // Restore birthratePerSec if Silence was active
+        if (this.savedBirthratePerSec > 0) {
+          this.populationManager.stats.birthratePerSec = this.savedBirthratePerSec;
+          this.savedBirthratePerSec = 0;
         }
       }
 
@@ -296,36 +306,44 @@ export class MainScene extends CustomScene {
   // ── Ability execution ──
 
   private executeAbility(id: string) {
+    const bonuses = this.constellationManager.bonuses;
     switch (id) {
-      case 'void_call':
-        this.forceAllJump();
+      case 'void_call': {
+        const origTurnBack = this.populationManager.stats.turnBackRate;
+        this.populationManager.stats.turnBackRate = 0;
+        this.time.delayedCall(bonuses.voidCall.duration, () => {
+          this.populationManager.stats.turnBackRate = origTurnBack;
+        });
         break;
-      case 'dark_wave':
-        for (let i = 0; i < 8; i++) {
-          this.spawnHuman(this.spawnX - i * this.tileSize * 1.5, true);
+      }
+      case 'dark_wave': {
+        const count = bonuses.darkWave.count;
+        for (let i = 0; i < count; i++) {
+          this.spawnHuman(this.spawnX - i * this.tileSize * 1.5);
         }
         break;
+      }
       case 'frenzy_pulse': {
         const origSpeed = this.populationManager.stats.walkSpeed;
-        this.populationManager.stats.walkSpeed = Math.round(origSpeed * 3);
-        this.time.delayedCall(10_000, () => {
+        this.populationManager.stats.walkSpeed = Math.round(origSpeed * bonuses.frenzyPulse.multiplier);
+        this.time.delayedCall(bonuses.frenzyPulse.duration, () => {
           this.populationManager.stats.walkSpeed = origSpeed;
         });
         break;
       }
-      case 'chain_of_souls':
-        this.chainJumpActive = true;
-        this.time.delayedCall(15_000, () => {
-          this.chainJumpActive = false;
-        });
-        break;
       case 'silence':
-        this.savedBirthRate = this.populationManager.stats.birthRate;
-        this.populationManager.stats.birthRate = 0;
+        this.savedBirthratePerSec = this.populationManager.stats.birthratePerSec;
+        this.populationManager.stats.birthratePerSec = 0;
+        this.time.delayedCall(bonuses.silence.duration, () => {
+          if (this.populationManager.stats.birthratePerSec === 0) {
+            this.populationManager.stats.birthratePerSec = this.savedBirthratePerSec;
+          }
+          this.savedBirthratePerSec = 0;
+        });
         break;
       case 'soul_harvest':
         this.soulHarvestActive = true;
-        this.time.delayedCall(15_000, () => {
+        this.time.delayedCall(bonuses.soulHarvest.duration, () => {
           this.soulHarvestActive = false;
         });
         break;
@@ -416,9 +434,6 @@ export class MainScene extends CustomScene {
   private doSpawn(overrideX?: number, forceJump = false) {
     if (this.populationManager.population <= 0) return;
     this.spawnHuman(overrideX, forceJump);
-    if (this.populationManager.shouldSpawnExtra()) {
-      this.spawnHuman(undefined, forceJump);
-    }
   }
 
   private spawnHuman(overrideX?: number, forceJump = false) {
@@ -435,17 +450,11 @@ export class MainScene extends CustomScene {
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
-        // Soul gain with multiplier
-        const soulGain = Math.floor(
-          this.constellationManager.bonuses.soulMultiplier * (this.soulHarvestActive ? 2 : 1),
-        );
-        for (let s = 0; s < soulGain; s++) this.constellationManager.onHumanKilled();
+        // Soul gain: base multiplier × soul harvest if active, always integer
+        const soulHarvestMult = this.soulHarvestActive ? this.constellationManager.bonuses.soulHarvest.multiplier : 1;
+        const soulGain = Math.floor(this.constellationManager.bonuses.soulMultiplier * soulHarvestMult);
+        this.constellationManager.souls += soulGain;
         this.juiceEffects.onJump(jumpX, jumpY);
-
-        // Chain of Souls ability
-        if (this.chainJumpActive) {
-          this.cascadeToNearest(jumpX);
-        }
       },
       () => this.populationManager.onHumanTurnedBack(),
     );
@@ -465,26 +474,27 @@ export class MainScene extends CustomScene {
     }
   }
 
-  private cascadeToNearest(fromX: number) {
-    let nearest: Human | null = null;
-    let nearestDist = Infinity;
-    for (const h of this.humans) {
-      if (!h.isWalking()) continue;
-      const dist = Math.abs(h.x - fromX);
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = h;
-      }
-    }
-    if (nearest) {
-      nearest.forceJump();
-    }
-  }
-
   private forceAllTurnBack() {
     for (const human of this.humans) {
       human.forceTurnBack();
     }
+  }
+
+  private transitionSkyColor(target: { r: number; g: number; b: number }, duration = 2000) {
+    this.tweens.add({
+      targets: this.skyColor,
+      r: target.r,
+      g: target.g,
+      b: target.b,
+      duration,
+      ease: 'Sine.easeInOut',
+      onUpdate: () => {
+        const r = Math.round(this.skyColor.r);
+        const g = Math.round(this.skyColor.g);
+        const b = Math.round(this.skyColor.b);
+        this.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(r, g, b));
+      },
+    });
   }
 
   private endRun(result: 'victory' | 'defeat') {
