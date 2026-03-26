@@ -1,3 +1,6 @@
+import { MainScene } from '../scenes/MainScene';
+import { AUDIO_KEYS } from '../audio/AudioManager';
+
 export enum HumanState {
   Walking = 'Walking',
   FlipTurn = 'FlipTurn',
@@ -26,6 +29,7 @@ export class Human extends Phaser.GameObjects.Sprite {
   private walkAnimSpeed: number = 0;
   private flipProgress: number = 0;
   private baseScaleX: number = 0;
+  private splashed: boolean = false;
 
   private onJumped: (x: number, y: number) => void;
   private onTurnedBack: () => void;
@@ -137,8 +141,22 @@ this.setDepth(1000000000);
         }
         break;
 
-      case HumanState.Falling:
-        this.diveVelocityY += this.gravity * dt;
+      case HumanState.Falling: {
+        const waveY = (this.scene as MainScene).getFirstWaveWorldY(this.x);
+        const inWater = this.y > waveY;
+        const drag = inWater ? 0.15 : 1;
+
+        this.diveVelocityY += this.gravity * dt * drag;
+        if (inWater) {
+          this.diveVelocityY *= 1 - 3 * dt;
+          this.diveVelocityX *= 1 - 2 * dt;
+          this.rotationSpeed *= 1 - 2 * dt;
+          if (!this.splashed) {
+            this.splashed = true;
+            this.spawnSplash(this.x, waveY);
+            (this.scene as MainScene).audio.playSfxRandom(AUDIO_KEYS.HUMAN_SPLASH, 0.3);
+          }
+        }
         this.x += this.diveVelocityX * dt;
         this.y += this.diveVelocityY * dt;
         this.diveRotation += this.rotationSpeed * dt;
@@ -149,6 +167,33 @@ this.setDepth(1000000000);
           if (this.onFellOff) this.onFellOff(this.x);
         }
         break;
+      }
+    }
+  }
+
+  private spawnSplash(x: number, y: number) {
+    const pu = this.scene.cameras.main.height / 288;
+    const count = 5 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < count; i++) {
+      const size = pu * (1 + Math.random() * 2);
+      const particle = this.scene.add
+        .rectangle(x + (Math.random() - 0.5) * pu * 8, y, size, size, 0x222222, 0.8)
+        .setDepth(115);
+
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.6;
+      const speed = 40 + Math.random() * 80;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+
+      this.scene.tweens.add({
+        targets: particle,
+        x: particle.x + vx * 0.4,
+        y: particle.y + vy * 0.4,
+        alpha: 0,
+        duration: 300 + Math.random() * 200,
+        ease: 'Power2',
+        onComplete: () => particle.destroy(),
+      });
     }
   }
 

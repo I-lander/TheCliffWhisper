@@ -2,7 +2,7 @@ import { GameManager, GamePhase } from './GameManager';
 
 export const TURN_BACK_MIN = 0.05;
 export const TURN_BACK_MAX = 0.80;
-export const STAGNATION_LIMIT_MS = 20_000;
+export const STAGNATION_LIMIT_MS = 30_000;
 
 export interface PopulationStats {
   walkSpeed: number; // pixels per second (base: 120)
@@ -53,7 +53,7 @@ export class PopulationManager {
     this.birthAppliedThisDay = false;
     this.born = 0;
     this.stagnationTimer = 0;
-  }
+      }
 
   private onSunset() {
     if (!this.birthAppliedThisDay) {

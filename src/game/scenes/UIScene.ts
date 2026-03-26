@@ -1,6 +1,6 @@
 import { CustomScene } from '../customClasses/CustomScene';
-import { GameManager } from '../GameManager';
-import { PopulationManager } from '../PopulationManager';
+import { GameManager, GamePhase } from '../GameManager';
+import { PopulationManager, STAGNATION_LIMIT_MS } from '../PopulationManager';
 import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
 import { AUDIO_KEYS } from '../audio/AudioManager';
@@ -10,10 +10,13 @@ export class UIScene extends CustomScene {
   private gameManager!: GameManager;
   private populationManager!: PopulationManager;
 
-  // Top-left: phase info
-  private phaseText!: Phaser.GameObjects.Text;
-  private timerText!: Phaser.GameObjects.Text;
+  // Top-left: day info
   private dayText!: Phaser.GameObjects.Text;
+
+  // Stagnation progress bar (top-center)
+  private stagnationBarBg!: Phaser.GameObjects.Rectangle;
+  private stagnationBarFill!: Phaser.GameObjects.Rectangle;
+  private stagnationBarMaxW: number = 0;
 
   // Bottom-left: main stats
   private popText!: Phaser.GameObjects.Text;
@@ -37,7 +40,7 @@ export class UIScene extends CustomScene {
     const fontSize = Math.round(this.tileSize * 0.6);
     const smallFontSize = Math.round(this.tileSize * 0.45);
     const padding = this.tileSize * 0.5;
-    // Top-left: day + phase + timer
+    // Top-left: day + phase
     this.dayText = this.add
       .text(padding, padding, '', {
         fontSize: `${fontSize}px`,
@@ -46,21 +49,23 @@ export class UIScene extends CustomScene {
       })
       .setAlpha(0.8);
 
-    this.phaseText = this.add
-      .text(padding, padding + fontSize * 1.2, '', {
-        fontSize: `${fontSize}px`,
-        color: '#ffffff',
-        fontFamily: 'PixelSleigh',
-      })
-      .setAlpha(0.8);
+    // Stagnation bar (top-center, below the End Day button)
+    const screenWidth = this.cameras.main.width;
+    const barW = this.tileSize * 6;
+    const barH = this.tileSize * 0.25;
+    const barX = screenWidth / 2 - barW / 2;
+    const barY = this.tileSize * 1.8;
+    this.stagnationBarMaxW = barW;
 
-    this.timerText = this.add
-      .text(padding, padding + fontSize * 2.4, '', {
-        fontSize: `${fontSize}px`,
-        color: '#ffffff',
-        fontFamily: 'PixelSleigh',
-      })
-      .setAlpha(0.6);
+    this.stagnationBarBg = this.add
+      .rectangle(barX, barY, barW, barH, 0x000000, 0.4)
+      .setOrigin(0, 0)
+      .setVisible(false);
+
+    this.stagnationBarFill = this.add
+      .rectangle(barX, barY, barW, barH, 0xffffff, 0.8)
+      .setOrigin(0, 0)
+      .setVisible(false);
 
     // Bottom-left: all stats stacked from bottom up
     const bottomY = this.cameras.main.height - padding;
@@ -97,7 +102,6 @@ export class UIScene extends CustomScene {
       .setAlpha(0.6);
 
     // Top-right: menu button
-    const screenWidth = this.cameras.main.width;
     const menuBtn = this.add
       .text(screenWidth - padding, padding, t('hud.menu'), {
         fontSize: `${smallFontSize}px`,
@@ -131,8 +135,28 @@ export class UIScene extends CustomScene {
     const day = this.gameManager.getDayCount();
 
     this.dayText.setText(`${t('hud.day')} ${day}`);
-    this.phaseText.setText(t(`phase.${phase}`));
-    this.timerText.setText('');
+
+    // Stagnation bar: visible during Daytime
+    if (phase === GamePhase.Daytime) {
+      const remaining = Math.max(0, STAGNATION_LIMIT_MS - this.populationManager.stagnationTimer);
+      const ratio = remaining / STAGNATION_LIMIT_MS; // 1 = full (safe), 0 = empty (defeat)
+
+      this.stagnationBarBg.setVisible(true);
+      this.stagnationBarFill.setVisible(true);
+      this.stagnationBarFill.width = this.stagnationBarMaxW * ratio;
+
+      // Color: white → yellow → red as time runs out
+      if (ratio > 0.5) {
+        this.stagnationBarFill.setFillStyle(0xffffff, 0.6);
+      } else if (ratio > 0.25) {
+        this.stagnationBarFill.setFillStyle(0xffcc44, 0.8);
+      } else {
+        this.stagnationBarFill.setFillStyle(0xff4444, 1);
+      }
+    } else {
+      this.stagnationBarBg.setVisible(false);
+      this.stagnationBarFill.setVisible(false);
+    }
 
     const pop = this.populationManager.population;
 

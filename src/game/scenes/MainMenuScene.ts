@@ -4,8 +4,9 @@ import { SaveManager } from '../SaveManager';
 import { removeSplashScreen, createUIPanel } from '../utils/utils';
 import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
+import { CustomScene } from '../customClasses/CustomScene';
 
-export class MainMenuScene extends Phaser.Scene {
+export class MainMenuScene extends CustomScene {
   private continueBtn!: Phaser.GameObjects.Text;
   private confirmGroup: Phaser.GameObjects.GameObject[] = [];
   private audio!: AudioManager;

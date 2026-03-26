@@ -1,9 +1,10 @@
 import { t } from '../i18n/i18n';
 import { AUDIO_KEYS } from '../audio/AudioManager';
+import { CustomScene } from '../customClasses/CustomScene';
 
 export type EndRunResult = 'victory' | 'defeat';
 
-export class EndRunScene extends Phaser.Scene {
+export class EndRunScene extends CustomScene {
   private result!: EndRunResult;
   private dayCount!: number;
   private finalPopulation!: number;
@@ -11,6 +12,7 @@ export class EndRunScene extends Phaser.Scene {
   constructor() {
     super('EndRunScene');
   }
+
 
   init(data: { result: EndRunResult; dayCount: number; population: number }) {
     this.result = data.result;

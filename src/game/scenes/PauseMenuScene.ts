@@ -4,8 +4,9 @@ import { SaveManager, SaveData } from '../SaveManager';
 import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
+import { CustomScene } from '../customClasses/CustomScene';
 
-export class PauseMenuScene extends Phaser.Scene {
+export class PauseMenuScene extends CustomScene {
   private overlay!: Phaser.GameObjects.Rectangle;
   private menuItems: Phaser.GameObjects.Text[] = [];
   private saveStatusText!: Phaser.GameObjects.Text;

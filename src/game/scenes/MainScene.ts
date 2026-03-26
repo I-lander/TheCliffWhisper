@@ -12,6 +12,9 @@ import { UIScene } from './UIScene';
 import { SaveManager } from '../SaveManager';
 import { t } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS, ABILITY_AUDIO, DECO_AUDIO } from '../audio/AudioManager';
+import { createUIPanel, initShader, clearShader } from '../utils/utils';
+import { CloudManager } from '../objects/CloudManager';
+import { createWaveShader } from '../shaders/WaveShader';
 
 const SKY_COLORS: Record<GamePhase, { r: number; g: number; b: number }> = {
   [GamePhase.Night]: { r: 0x0a, g: 0x0a, b: 0x1a },
@@ -30,6 +33,14 @@ export class MainScene extends CustomScene {
   private abilityUI!: AbilityUI;
   private juiceEffects!: JuiceEffects;
   private endDayBtn!: Phaser.GameObjects.Text;
+  private endDayBtnBg!: Phaser.GameObjects.Graphics;
+  private waveShaderObj!: Phaser.GameObjects.Shader;
+  private waveElapsed: number = 0;
+  private waveTopY: number = 0;
+  private waveCanvasW: number = 0;
+  private waveCanvasH: number = 0;
+  private waveWorldH: number = 0;
+  private wavePixelToWorld: number = 0;
 
   canvasWidth: number = 0;
   canvasHeight: number = 0;
@@ -45,6 +56,7 @@ export class MainScene extends CustomScene {
 
   // Humans
   private humans: Human[] = [];
+  private firstHumanSpawned: boolean = false;
   private autoClickTimer: number = 0;
   private runEnded: boolean = false;
 
@@ -66,6 +78,7 @@ export class MainScene extends CustomScene {
 
   private loadSave: boolean = false;
   audio!: AudioManager;
+  private cloudManager!: CloudManager;
 
   constructor() {
     super('MainScene');
@@ -150,6 +163,35 @@ export class MainScene extends CustomScene {
     // Juice effects
     this.juiceEffects = new JuiceEffects(this);
 
+    // Clouds
+    this.cloudManager = new CloudManager(this, this.tileSize);
+
+    // Waves at the bottom of the screen (below the cliff body)
+    const SPRITE_BASE_UNIT = 16;
+    this.waveTopY = this.canvasHeight * 0.75;
+    const waveWorldW = this.canvasWidth;
+    this.waveWorldH = this.canvasHeight - this.waveTopY;
+    const waveCenterX = this.canvasWidth / 2;
+    const waveCenterY = this.waveTopY + this.waveWorldH / 2;
+    this.waveCanvasW = Math.round(waveWorldW / this.tileSize * SPRITE_BASE_UNIT);
+    this.waveCanvasH = Math.round(this.waveWorldH / this.tileSize * SPRITE_BASE_UNIT);
+    this.wavePixelToWorld = this.tileSize / SPRITE_BASE_UNIT;
+    const waveScale = waveWorldW / this.waveCanvasW;
+
+    this.waveShaderObj = this.add
+      .shader(createWaveShader(), waveCenterX, waveCenterY, this.waveCanvasW, this.waveCanvasH)
+      .setScale(waveScale)
+      .setDepth(100);
+
+    this.waveShaderObj.setUniform('pixelToWorld.value', this.wavePixelToWorld);
+    this.waveShaderObj.setUniform('canvasSizeX.value', this.waveCanvasW);
+    this.waveShaderObj.setUniform('canvasSizeY.value', this.waveCanvasH);
+
+    // CRT post-processing on all scenes
+    clearShader(this);
+    initShader(this);
+    this.updateShader();
+
     // Audio
     this.audio = new AudioManager(this);
     this.audio.playMusic(AUDIO_KEYS.AMBIENCE_DAY, 0.2);
@@ -160,16 +202,29 @@ export class MainScene extends CustomScene {
 
     // nightScrollY will be computed dynamically from root position
 
-    // End Day button (visible during Daytime only)
+    // End Day button with panel (visible during Daytime only)
+    const endDayFontSize = Math.round(this.tileSize * 0.5);
+    const endDayPadX = this.tileSize * 0.6;
+    const endDayPadY = this.tileSize * 0.25;
+    const lineWidth = this.pixelUnit;
+
     this.endDayBtn = this.add
       .text(this.canvasWidth / 2, this.tileSize * 0.8, t('game.endDay'), {
-        fontSize: `${Math.round(this.tileSize * 0.5)}px`,
+        fontSize: `${endDayFontSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
-      .setDepth(160)
+      .setDepth(161)
       .setInteractive({ useHandCursor: true });
+
+    this.endDayBtnBg = this.add.graphics().setDepth(160);
+    const btnW = this.endDayBtn.width + endDayPadX * 2;
+    const btnH = this.endDayBtn.height + endDayPadY * 2;
+    const btnX = this.canvasWidth / 2 - btnW / 2;
+    const btnY = this.tileSize * 0.8 - btnH / 2;
+    createUIPanel(this.endDayBtnBg, btnX, btnY, btnW, btnH, lineWidth, 0xaaccff, 0.5);
+
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.endDayBtn.setColor('#ffffff'));
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.endDayBtn.setColor('#aaccff'));
     this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); this.gameManager.skipPhase(); });
@@ -185,7 +240,8 @@ export class MainScene extends CustomScene {
 
     this.gameManager.onPhaseChange((phase) => {
       this.transitionSkyColor(SKY_COLORS[phase]);
-      // Phase transition audio
+      // Phase transition audio + clouds
+      this.cloudManager.setPhase(phase);
       if (phase === GamePhase.Night) {
         this.audio.playSfx(AUDIO_KEYS.PHASE_NIGHT, 0.4);
         this.audio.crossfadeTo(AUDIO_KEYS.AMBIENCE_NIGHT, 0.2);
@@ -223,6 +279,7 @@ export class MainScene extends CustomScene {
       const isDaytime = phase === GamePhase.Daytime;
       this.abilityUI.setVisible(isDaytime);
       this.endDayBtn.setVisible(isDaytime);
+      this.endDayBtnBg.setVisible(isDaytime);
       if (isDaytime) {
         this.abilityUI.refresh();
       }
@@ -270,6 +327,9 @@ export class MainScene extends CustomScene {
     // Click / drag handling
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
       if (this.runEnded) return;
+
+      // Ignore clicks on interactive UI elements (buttons, hit zones) in any scene
+      if (this.isPointerOverUI(pointer)) return;
 
       if (this.gameManager.getPhase() === GamePhase.Night) {
         // Start drag for camera pan
@@ -392,9 +452,11 @@ export class MainScene extends CustomScene {
 
   /** Draw the cliff body fill + the vertical right edge (not managed by tilemap). */
   private drawCliffEdge() {
+    const cliffDepth = 110;
     const g = this.add.graphics();
     g.fillStyle(0x222222);
     g.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.tileSize, this.canvasHeight - this.groundY);
+    g.setDepth(cliffDepth);
 
     const scale = this.tileSize / 16;
     const faceFrame = 15 * 16 + 1;
@@ -402,12 +464,12 @@ export class MainScene extends CustomScene {
 
     // Corner at top-right of cliff
     this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
-      .setOrigin(1, 0).setScale(scale);
+      .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
 
     // Vertical face going down
     for (let ty = this.groundY + this.tileSize; ty < this.canvasHeight; ty += this.tileSize) {
       this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
-        .setOrigin(1, 0).setScale(scale);
+        .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
     }
   }
 
@@ -419,6 +481,9 @@ export class MainScene extends CustomScene {
     this.gameManager.update(delta);
     this.decorManager.update(delta);
     this.juiceEffects.update(delta);
+    this.cloudManager.update(delta);
+    this.waveElapsed += delta;
+    this.waveShaderObj.setUniform('elapsedTime.value', this.waveElapsed);
     this.abilityUI.update(delta);
 
     // Win check
@@ -476,6 +541,15 @@ export class MainScene extends CustomScene {
     }
   }
 
+  /** Check if the pointer is over an interactive game object in any active scene. */
+  private isPointerOverUI(pointer: Phaser.Input.Pointer): boolean {
+    for (const scene of this.game.scene.getScenes(true)) {
+      const hits = scene.input.hitTestPointer(pointer);
+      if (hits.length > 0) return true;
+    }
+    return false;
+  }
+
   // ── Spawn logic ──
 
   private doSpawn(overrideX?: number, forceJump = false) {
@@ -486,14 +560,17 @@ export class MainScene extends CustomScene {
   private spawnHuman(overrideX?: number, forceJump = false) {
     if (this.populationManager.population <= 0) return;
 
-    const shouldTurnBack = forceJump ? false : this.populationManager.shouldTurnBack();
+    const isFirst = !this.firstHumanSpawned;
+    if (isFirst) this.firstHumanSpawned = true;
+    const shouldTurnBack = (forceJump || isFirst) ? false : this.populationManager.shouldTurnBack();
+    const walkSpeed = isFirst ? this.populationManager.stats.walkSpeed * 2 : this.populationManager.stats.walkSpeed;
 
     const human = new Human(
       this,
       overrideX ?? this.spawnX,
       this.groundY,
       this.cliffEdgeX,
-      this.populationManager.stats.walkSpeed,
+      walkSpeed,
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
@@ -506,10 +583,7 @@ export class MainScene extends CustomScene {
       },
       () => { this.populationManager.onHumanTurnedBack(); this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_TURNBACK, 0.3); },
     );
-    human.setOnFellOff((fx) => {
-      this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_FALL, 0.25);
-      this.audio.playSfx(AUDIO_KEYS.SOUL_RISE, 0.2);
-      this.juiceEffects.spawnSoul(fx, this.canvasHeight);
+    human.setOnFellOff(() => {
       this.juiceEffects.onDeath();
     });
     this.humans.push(human);
@@ -528,6 +602,36 @@ export class MainScene extends CustomScene {
     for (const human of this.humans) {
       human.forceTurnBack();
     }
+  }
+
+  /**
+   * Compute the world Y of the first wave line at a given world X,
+   * replicating the GLSL sine calculation from WaveShader.
+   */
+  getFirstWaveWorldY(worldX: number): number {
+    // Convert worldX to shader canvas space
+    const canvasX = (worldX / this.canvasWidth) * this.waveCanvasW;
+    const shaderWorldX = canvasX * this.wavePixelToWorld;
+
+    // Shader constants (must match WaveShader.ts)
+    const SPACING = 16;
+    const BASE_AMPLITUDE = 2.4;
+    const SPEED = 0.001;
+
+    // First wave line (waveIndex = 0)
+    const wi = 0;
+    const baseY = SPACING * (wi + 0.5);
+    const phaseOffset = wi * 2.3;
+    const frequencyA = 0.006 + (wi % 3) * 0.002;
+    const frequencyB = 0.015 + (wi % 5) * 0.003;
+    const amplitudeVariation = 0.7 + (wi % 4) * 0.2;
+
+    const primary = Math.sin(shaderWorldX * frequencyA + this.waveElapsed * SPEED + phaseOffset);
+    const secondary = Math.sin(shaderWorldX * frequencyB - this.waveElapsed * SPEED * 0.6 + phaseOffset * 0.7) * 0.4;
+    const shaderY = baseY + (primary + secondary) * BASE_AMPLITUDE * amplitudeVariation;
+
+    // Convert shader canvas Y → world Y
+    return this.waveTopY + (shaderY / this.waveCanvasH) * this.waveWorldH;
   }
 
   private transitionSkyColor(target: { r: number; g: number; b: number }, duration = 2000) {

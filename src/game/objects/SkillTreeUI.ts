@@ -3,6 +3,7 @@ import { SkillTree } from '../constellations/ConstellationData';
 import { drawDashedLine, createUIPanel } from '../utils/utils';
 import { t } from '../i18n/i18n';
 import { AUDIO_KEYS } from '../audio/AudioManager';
+import { MainScene } from '../scenes/MainScene';
 
 const LOCKED_ALPHA = 0.18;
 
@@ -17,30 +18,44 @@ const TIER_RADIUS: Record<NodeTier, number> = {
 };
 
 // Ability unlock nodes — displayed with special emphasis
-const ABILITY_UNLOCK_IDS = new Set([
-  've_ab1', 'de_ab1', 'co_ab1', 'ma_ab1', 'ge_ab1',
-]);
+const ABILITY_UNLOCK_IDS = new Set(['ve_ab1', 'de_ab1', 'co_ab1', 'ma_ab1', 'ge_ab1']);
 
 // Notable nodes: trunk tips, fork tips, and ability final upgrades
 const BRANCH_TIP_IDS = new Set([
   // Trunk tips (node 10 of each branch)
-  've_10', 'de_10', 'co_10', 'ma_10', 'ge_10',
+  've_10',
+  'de_10',
+  'co_10',
+  'ma_10',
+  'ge_10',
   // Fork A tips
-  've_fa4', 'de_fa4', 'co_fa4', 'ma_fa4', 'ge_fa4',
+  've_fa4',
+  'de_fa4',
+  'co_fa4',
+  'ma_fa4',
+  'ge_fa4',
   // Fork B tips
-  've_fb3', 'de_fb3', 'co_fb3', 'ma_fb3', 'ge_fb3',
+  've_fb3',
+  'de_fb3',
+  'co_fb3',
+  'ma_fb3',
+  'ge_fb3',
   // Ability final upgrades
-  've_ab6', 'de_ab6', 'co_ab6', 'ma_ab6', 'ge_ab6',
+  've_ab6',
+  'de_ab6',
+  'co_ab6',
+  'ma_ab6',
+  'ge_ab6',
 ]);
 
 // Per-branch colors keyed by node id prefix
 const BRANCH_COLORS: Record<string, number> = {
   root: 0xffffff,
-  ve: 0xffcc44,  // velocity — yellow
-  de: 0xbb66ff,  // devotion — purple
-  co: 0x44ff88,  // contagion — green
-  ma: 0x44ddff,  // machinery — cyan
-  ge: 0xff8844,  // genesis — orange
+  ve: 0xffcc44, // velocity — yellow
+  de: 0xbb66ff, // devotion — purple
+  co: 0x44ff88, // contagion — green
+  ma: 0x44ddff, // machinery — cyan
+  ge: 0xff8844, // genesis — orange
 };
 
 function getBranchColor(nodeId: string): number {
@@ -56,7 +71,7 @@ function getNodeTier(nodeId: string): NodeTier {
 }
 
 export class SkillTreeUI {
-  private scene: Phaser.Scene;
+  private scene: MainScene;
   private constellationMgr: ConstellationManager;
   private container: Phaser.GameObjects.Container;
   private onEndNight: () => void;
@@ -88,7 +103,7 @@ export class SkillTreeUI {
   private constellationW: number;
   private constellationH: number;
 
-  constructor(scene: Phaser.Scene, constellationMgr: ConstellationManager, onEndNight: () => void) {
+  constructor(scene: MainScene, constellationMgr: ConstellationManager, onEndNight: () => void) {
     this.scene = scene;
     this.constellationMgr = constellationMgr;
     this.onEndNight = onEndNight;
@@ -125,17 +140,30 @@ export class SkillTreeUI {
       .setScrollFactor(0);
     this.uiOverlay.add(this.budgetText);
 
-    // End Night button
-    const btnY = cam.height - tileSize * 1.2;
+    // End Night button with panel (same style as End Day)
+    const endNightY = cam.height - tileSize * 1.2;
+    const endNightFontSize = Math.round(tileSize * 0.5);
+    const endNightPadX = tileSize * 0.6;
+    const endNightPadY = tileSize * 0.25;
+    const endNightLW = this.scene.pixelUnit;
+
     this.endNightBtn = scene.add
-      .text(cam.width / 2, btnY, t('tree.endNight'), {
-        fontSize: `${Math.round(tileSize * 0.6)}px`,
+      .text(cam.width / 2, endNightY, t('tree.endNight'), {
+        fontSize: `${endNightFontSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
       .setScrollFactor(0)
+      .setDepth(181)
       .setInteractive({ useHandCursor: true });
+
+    const endNightBg = scene.add.graphics().setScrollFactor(0).setDepth(180);
+    const enBtnW = this.endNightBtn.width + endNightPadX * 2;
+    const enBtnH = this.endNightBtn.height + endNightPadY * 2;
+    const enBtnX = cam.width / 2 - enBtnW / 2;
+    const enBtnY = endNightY - enBtnH / 2;
+    createUIPanel(endNightBg, enBtnX, enBtnY, enBtnW, enBtnH, endNightLW, 0x4466aa, 0.5);
 
     this.endNightBtn.on(Phaser.Input.Events.POINTER_OVER, () =>
       this.endNightBtn.setColor('#ffffff'),
@@ -143,26 +171,37 @@ export class SkillTreeUI {
     this.endNightBtn.on(Phaser.Input.Events.POINTER_OUT, () =>
       this.endNightBtn.setColor('#aaccff'),
     );
-    this.endNightBtn.on(Phaser.Input.Events.POINTER_DOWN, () => { this.scene.sound.play(AUDIO_KEYS.UI_CLICK, { volume: 0.4 }); this.onEndNight(); });
+    this.endNightBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.scene.sound.play(AUDIO_KEYS.UI_CLICK, { volume: 0.4 });
+      this.onEndNight();
+    });
+    this.uiOverlay.add(endNightBg);
     this.uiOverlay.add(this.endNightBtn);
 
     // Tooltip (shared, moves on click) — only non-interactive elements here
-    this.tooltipContainer = scene.add.container(0, 0).setVisible(false).setDepth(200).setScrollFactor(0);
+    this.tooltipContainer = scene.add
+      .container(0, 0)
+      .setVisible(false)
+      .setDepth(200)
+      .setScrollFactor(0);
     this.tooltipBg = scene.add.graphics();
     const ttFont = Math.round(tileSize * 0.45);
     const ttSmall = Math.round(ttFont * 0.8);
     const lineH = ttFont * 1.6;
-    this.tooltipName = scene.add.text(0, 0, '', {
-      fontSize: `${ttFont}px`,
-      color: '#ffffff',
-      fontFamily: 'PixelSleigh',
-    });
-    this.tooltipDesc = scene.add.text(0, lineH, '', {
+    this.tooltipName = scene.add
+      .text(0, 0, '', {
+        fontSize: `${ttFont}px`,
+        color: '#ffffff',
+        fontFamily: 'PixelSleigh',
+      })
+      .setVisible(false);
+    this.tooltipDesc = scene.add.text(0, 0, '', {
       fontSize: `${ttSmall}px`,
       color: '#cccccc',
       fontFamily: 'PixelSleigh',
+      wordWrap: { width: tileSize * 8 },
     });
-    this.tooltipCost = scene.add.text(0, lineH * 2, '', {
+    this.tooltipCost = scene.add.text(0, lineH, '', {
       fontSize: `${ttSmall}px`,
       color: '#ffcc44',
       fontFamily: 'PixelSleigh',
@@ -177,20 +216,30 @@ export class SkillTreeUI {
     // Close button — standalone objects, NOT inside tooltipContainer
     const closeFontSize = Math.round(tileSize * 0.45);
     const closeHitSize = tileSize * 1.2;
-    this.closeBtnText = scene.add.text(0, 0, 'X', {
-      fontSize: `${closeFontSize}px`,
-      color: '#ff6666',
-      fontFamily: 'PixelSleigh',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setVisible(false);
+    this.closeBtnText = scene.add
+      .text(0, 0, 'X', {
+        fontSize: `${closeFontSize}px`,
+        color: '#ff6666',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(201)
+      .setVisible(false);
 
-    this.closeBtnHitZone = scene.add.rectangle(0, 0, closeHitSize, closeHitSize)
+    this.closeBtnHitZone = scene.add
+      .rectangle(0, 0, closeHitSize, closeHitSize)
       .setScrollFactor(0)
       .setDepth(201)
       .setInteractive({ useHandCursor: true })
       .setAlpha(0.001)
       .setVisible(false);
-    this.closeBtnHitZone.on(Phaser.Input.Events.POINTER_OVER, () => this.closeBtnText.setColor('#ffffff'));
-    this.closeBtnHitZone.on(Phaser.Input.Events.POINTER_OUT, () => this.closeBtnText.setColor('#ff6666'));
+    this.closeBtnHitZone.on(Phaser.Input.Events.POINTER_OVER, () =>
+      this.closeBtnText.setColor('#ffffff'),
+    );
+    this.closeBtnHitZone.on(Phaser.Input.Events.POINTER_OUT, () =>
+      this.closeBtnText.setColor('#ff6666'),
+    );
     this.closeBtnHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.hideSelection();
     });
@@ -198,23 +247,36 @@ export class SkillTreeUI {
     // Unlock button — standalone objects, NOT inside a container
     const btnFontSize = Math.round(tileSize * 0.55);
     this.unlockBtnBg = scene.add.graphics().setScrollFactor(0).setDepth(210).setVisible(false);
-    this.unlockBtnText = scene.add.text(0, 0, t('tree.unlock'), {
-      fontSize: `${btnFontSize}px`,
-      color: '#44ff88',
-      fontFamily: 'PixelSleigh',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(210).setVisible(false);
+    this.unlockBtnText = scene.add
+      .text(0, 0, t('tree.unlock'), {
+        fontSize: `${btnFontSize}px`,
+        color: '#44ff88',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(210)
+      .setVisible(false);
 
-    this.unlockBtnHitZone = scene.add.rectangle(0, 0, tileSize * 6, tileSize * 1.5)
+    this.unlockBtnHitZone = scene.add
+      .rectangle(0, 0, tileSize * 6, tileSize * 1.5)
       .setScrollFactor(0)
       .setDepth(210)
       .setInteractive({ useHandCursor: true })
       .setAlpha(0.001)
       .setVisible(false);
-    this.unlockBtnHitZone.on(Phaser.Input.Events.POINTER_OVER, () => this.unlockBtnText.setColor('#ffffff'));
-    this.unlockBtnHitZone.on(Phaser.Input.Events.POINTER_OUT, () => this.unlockBtnText.setColor('#44ff88'));
+    this.unlockBtnHitZone.on(Phaser.Input.Events.POINTER_OVER, () =>
+      this.unlockBtnText.setColor('#ffffff'),
+    );
+    this.unlockBtnHitZone.on(Phaser.Input.Events.POINTER_OUT, () =>
+      this.unlockBtnText.setColor('#44ff88'),
+    );
     this.unlockBtnHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
       if (!this.selectedNode) return;
-      const success = this.constellationMgr.unlockNode(this.selectedNode.treeId, this.selectedNode.nodeIndex);
+      const success = this.constellationMgr.unlockNode(
+        this.selectedNode.treeId,
+        this.selectedNode.nodeIndex,
+      );
       if (success) {
         this.scene.sound.play(AUDIO_KEYS.NODE_UNLOCK, { volume: 0.5 });
         this.hideSelection();
@@ -288,7 +350,7 @@ export class SkillTreeUI {
     // cy is the BOTTOM (root level, just above cliff).
     // All nodes go UP from there. We find the max y in data (root=0)
     // and offset so that max y maps to cy, everything else goes above.
-    const maxY = Math.max(...tree.nodes.map(n => n.y));
+    const maxY = Math.max(...tree.nodes.map((n) => n.y));
     return {
       x: cx + node.x * (this.constellationW / 2),
       y: cy + (node.y - maxY) * (this.constellationH / 2),
@@ -312,7 +374,8 @@ export class SkillTreeUI {
       for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 12) {
         const len = Math.max(this.constellationW, this.constellationH) * 0.6;
         webGraphics.lineBetween(
-          rootPos.x, rootPos.y,
+          rootPos.x,
+          rootPos.y,
           rootPos.x + Math.cos(angle) * len,
           rootPos.y + Math.sin(angle) * len,
         );
@@ -342,7 +405,18 @@ export class SkillTreeUI {
 
       if (bothUnlocked) {
         const branchColor = getBranchColor(toNode.id);
-        drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu * 3, branchColor, 0.12);
+        drawDashedLine(
+          edgeGraphics,
+          from.x,
+          from.y,
+          to.x,
+          to.y,
+          dash,
+          gap,
+          pu * 3,
+          branchColor,
+          0.12,
+        );
         drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, branchColor, 0.5);
         drawDashedLine(edgeGraphics, from.x, from.y, to.x, to.y, dash, gap, pu, 0xffffff, 0.4);
       } else if (eitherUnlocked) {
@@ -367,7 +441,9 @@ export class SkillTreeUI {
       if (!this.isNight && !isUnlocked) return;
 
       const isAbility = tier === 'ability';
-      const starScale = (tier === 'keystone' ? 1.8 : isAbility ? 1.5 : tier === 'notable' ? 1.2 : 0.7) * (this.scene.cameras.main.height / 18 / 16);
+      const starScale =
+        (tier === 'keystone' ? 1.8 : isAbility ? 1.5 : tier === 'notable' ? 1.2 : 0.7) *
+        (this.scene.cameras.main.height / 18 / 16);
 
       if (isUnlocked) {
         // Glow behind star
@@ -379,11 +455,17 @@ export class SkillTreeUI {
         glow.setAlpha(dayAlpha);
         container.add(glow);
         // Star sprite tinted with branch color
-        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale).setAlpha(dayAlpha);
+        const star = this.scene.add
+          .image(pos.x, pos.y, 'star')
+          .setScale(starScale)
+          .setAlpha(dayAlpha);
         star.setTintFill(branchColor);
         container.add(star);
         // Bright center
-        const center = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.5).setAlpha(0.9 * dayAlpha);
+        const center = this.scene.add
+          .image(pos.x, pos.y, 'star')
+          .setScale(starScale * 0.5)
+          .setAlpha(0.9 * dayAlpha);
         star.setTintFill(0xffffff);
         container.add(center);
       } else if (canUnlock) {
@@ -403,7 +485,10 @@ export class SkillTreeUI {
             ease: 'Sine.easeInOut',
           });
         }
-        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.9).setAlpha((isAbility ? 0.7 : 0.5) * dayAlpha);
+        const star = this.scene.add
+          .image(pos.x, pos.y, 'star')
+          .setScale(starScale * 0.9)
+          .setAlpha((isAbility ? 0.7 : 0.5) * dayAlpha);
         star.setTintFill(branchColor);
         container.add(star);
       } else {
@@ -415,7 +500,10 @@ export class SkillTreeUI {
           dimGlow.setAlpha(dayAlpha);
           container.add(dimGlow);
         }
-        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * (isAbility ? 0.8 : 0.6)).setAlpha((isAbility ? LOCKED_ALPHA * 1.5 : LOCKED_ALPHA) * dayAlpha);
+        const star = this.scene.add
+          .image(pos.x, pos.y, 'star')
+          .setScale(starScale * (isAbility ? 0.8 : 0.6))
+          .setAlpha((isAbility ? LOCKED_ALPHA * 1.5 : LOCKED_ALPHA) * dayAlpha);
         star.setTintFill(isAbility ? branchColor : 0x445566);
         container.add(star);
       }
@@ -432,7 +520,16 @@ export class SkillTreeUI {
 
         hitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
           this.scene.sound.play(AUDIO_KEYS.NODE_HOVER, { volume: 0.2 });
-          this.showTooltip(pos.x, pos.y - radius - 30, node, isUnlocked, canUnlock, branchColor, tree.id, nodeIndex);
+          this.showTooltip(
+            pos.x,
+            pos.y - radius - 30,
+            node,
+            isUnlocked,
+            canUnlock,
+            branchColor,
+            tree.id,
+            nodeIndex,
+          );
         });
 
         container.add(hitZone);
@@ -460,9 +557,11 @@ export class SkillTreeUI {
     const pu = cam.height / 288;
     const colorStr = '#' + branchColor.toString(16).padStart(6, '0');
 
-    this.tooltipName.setText(t(`node.${node.id}.name`)).setColor(colorStr);
-    this.tooltipDesc.setText(t(`node.${node.id}.desc`));
-    this.tooltipCost.setText(unlocked ? t('tree.unlocked') : t('tree.cost').replace('{cost}', String(node.cost)));
+    this.tooltipDesc.setText(t(`node.${node.id}.desc`)).setColor(colorStr);
+    this.tooltipCost.setText(
+      unlocked ? t('tree.unlocked') : t('tree.cost').replace('{cost}', String(node.cost)),
+    );
+    this.tooltipCost.setY(this.tooltipDesc.height + pad * 0.5);
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
@@ -470,18 +569,14 @@ export class SkillTreeUI {
 
     // Tooltip dimensions — extra space on right for close button
     const closeBtnSpace = Math.round(pad * 1.5);
-    const w =
-      Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width) + pad * 2 + closeBtnSpace;
+    const w = Math.max(this.tooltipDesc.width, this.tooltipCost.width) + pad * 2 + closeBtnSpace;
     const h = this.tooltipCost.y + this.tooltipCost.height + pad;
 
     this.tooltipBg.clear();
-    createUIPanel(
-      this.tooltipBg,
-      -pad, -pad, w, h,
-      pu,
-      branchColor, 0.6,
-      { color: 0x080810, alpha: 0.92 },
-    );
+    createUIPanel(this.tooltipBg, -pad, -pad, w, h, pu, branchColor, 0.6, {
+      color: 0x080810,
+      alpha: 0.92,
+    });
 
     // Convert world coords to screen coords (tooltip has scrollFactor 0)
     const screenX = x - cam.scrollX;
@@ -510,7 +605,10 @@ export class SkillTreeUI {
 
       this.unlockBtnBg.clear();
       this.unlockBtnBg.setVisible(true);
-      createUIPanel(this.unlockBtnBg, btnX, btnY, btnW, btnH, pu, 0x44ff88, 0.8, { color: 0x0a0a1a, alpha: 0.92 });
+      createUIPanel(this.unlockBtnBg, btnX, btnY, btnW, btnH, pu, 0x44ff88, 0.8, {
+        color: 0x0a0a1a,
+        alpha: 0.92,
+      });
       this.unlockBtnText.setPosition(btnX + btnW / 2, btnY + btnH / 2).setVisible(true);
       this.unlockBtnHitZone.setPosition(btnX + btnW / 2, btnY + btnH / 2);
       this.unlockBtnHitZone.setSize(btnW, btnH);
