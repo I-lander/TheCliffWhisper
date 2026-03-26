@@ -57,9 +57,7 @@ export class EndRunScene extends Phaser.Scene {
       this.scene.stop('EndRunScene');
       this.scene.stop('UIScene');
       this.scene.stop('MainScene');
-      this.scene.start('MainScene');
-      this.scene.start('UIScene');
-      this.scene.bringToTop('UIScene');
+      this.scene.start('MainMenuScene');
     });
   }
 }

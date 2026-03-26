@@ -65,7 +65,7 @@ export class Human extends Phaser.GameObjects.Sprite {
     this.walkTime = Math.random() * Math.PI * 2; // desync between humans
     this.walkAnimSpeed = 14 + (this.walkSpeed / 30); // faster walk = faster anim
     this.baseScaleX = this.scaleX;
-
+this.setDepth(1000000000);
     scene.add.existing(this);
   }
 

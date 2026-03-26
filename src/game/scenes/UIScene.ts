@@ -13,11 +13,9 @@ export class UIScene extends CustomScene {
   private timerText!: Phaser.GameObjects.Text;
   private dayText!: Phaser.GameObjects.Text;
 
-  // Top-right: population info
+  // Bottom-left: all stats
   private popText!: Phaser.GameObjects.Text;
   private birthRateText!: Phaser.GameObjects.Text;
-
-  // Bottom-left: daily stats + souls
   private dailyStatsText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
 
@@ -36,8 +34,6 @@ export class UIScene extends CustomScene {
     const fontSize = Math.round(this.tileSize * 0.6);
     const smallFontSize = Math.round(this.tileSize * 0.45);
     const padding = this.tileSize * 0.5;
-    const screenWidth = this.cameras.main.width;
-
     // Top-left: day + phase + timer
     this.dayText = this.add
       .text(padding, padding, '', {
@@ -63,30 +59,13 @@ export class UIScene extends CustomScene {
       })
       .setAlpha(0.6);
 
-    // Top-right: population + birth rate
-    this.popText = this.add
-      .text(screenWidth - padding, padding, '', {
-        fontSize: `${fontSize}px`,
-        color: '#ffffff',
-        fontFamily: 'PixelSleigh',
-        align: 'right',
-      })
-      .setOrigin(1, 0)
-      .setAlpha(0.9);
+    // Bottom-left: all stats stacked from bottom up
+    const bottomY = this.cameras.main.height - padding;
+    const lineHeight = smallFontSize * 1.4;
 
-    this.birthRateText = this.add
-      .text(screenWidth - padding, padding + fontSize * 1.2, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#ff6666',
-        fontFamily: 'PixelSleigh',
-        align: 'right',
-      })
-      .setOrigin(1, 0)
-      .setAlpha(0.7);
-
-    // Bottom-left: daily stats
+    // Row 1 (bottom): daily stats (jumped / turned back)
     this.dailyStatsText = this.add
-      .text(padding, this.cameras.main.height - padding, '', {
+      .text(padding, bottomY, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaaaaa',
         fontFamily: 'PixelSleigh',
@@ -94,15 +73,53 @@ export class UIScene extends CustomScene {
       .setOrigin(0, 1)
       .setAlpha(0.6);
 
-    // Bottom-left: souls counter (above daily stats)
+    // Row 2: birth rate
+    this.birthRateText = this.add
+      .text(padding, bottomY - lineHeight, '', {
+        fontSize: `${smallFontSize}px`,
+        color: '#ff6666',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0, 1)
+      .setAlpha(0.7);
+
+    // Row 3: population
+    this.popText = this.add
+      .text(padding, bottomY - lineHeight * 2, '', {
+        fontSize: `${smallFontSize}px`,
+        color: '#ffffff',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0, 1)
+      .setAlpha(0.9);
+
+    // Row 4: souls
     this.soulsText = this.add
-      .text(padding, this.cameras.main.height - padding - smallFontSize * 1.5, '', {
+      .text(padding, bottomY - lineHeight * 3, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0, 1)
       .setAlpha(0.8);
+
+    // Top-right: menu button
+    const screenWidth = this.cameras.main.width;
+    const menuBtn = this.add
+      .text(screenWidth - padding, padding, '[ Menu ]', {
+        fontSize: `${smallFontSize}px`,
+        color: '#666688',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(1, 0)
+      .setAlpha(0.8)
+      .setInteractive({ useHandCursor: true });
+
+    menuBtn.on(Phaser.Input.Events.POINTER_OVER, () => menuBtn.setColor('#aaccff'));
+    menuBtn.on(Phaser.Input.Events.POINTER_OUT, () => menuBtn.setColor('#666688'));
+    menuBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.mainScene.openPauseMenu();
+    });
   }
 
   setGameManager(gm: GameManager) {

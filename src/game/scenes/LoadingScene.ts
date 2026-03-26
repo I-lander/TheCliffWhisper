@@ -21,8 +21,6 @@ export class LoadingScene extends Phaser.Scene {
   }
 
   async create() {
-    this.scene.start('MainScene');
-    this.scene.start('UIScene');
-    this.scene.bringToTop('UIScene');
+    this.scene.start('MainMenuScene');
   }
 }

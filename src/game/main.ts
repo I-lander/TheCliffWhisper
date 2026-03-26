@@ -3,6 +3,8 @@ import { MainScene } from './scenes/MainScene';
 import { UIScene } from './scenes/UIScene';
 import { LoadingScene } from './scenes/LoadingScene';
 import { EndRunScene } from './scenes/EndRunScene';
+import { MainMenuScene } from './scenes/MainMenuScene';
+import { PauseMenuScene } from './scenes/PauseMenuScene';
 
 export function initPhaserGame() {
   window.splashStartTime = Date.now();
@@ -22,7 +24,7 @@ export function initPhaserGame() {
     },
     disableContextMenu: true,
     parent: 'game-container',
-    scene: [LoadingScene, MainScene, UIScene, EndRunScene],
+    scene: [LoadingScene, MainMenuScene, MainScene, UIScene, PauseMenuScene, EndRunScene],
     powerPreference: 'high-performance',
     autoMobilePipeline: true,
     fps: {

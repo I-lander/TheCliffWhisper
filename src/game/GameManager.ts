@@ -93,6 +93,17 @@ export class GameManager {
     }
   }
 
+  restoreState(phase: GamePhase, phaseElapsed: number, dayCount: number) {
+    this.currentPhase = phase;
+    this.phaseElapsed = phaseElapsed;
+    this.dayCount = dayCount;
+    this.running = true;
+    this.phaseExtension = 0;
+    for (const cb of this.listeners) {
+      cb(this.currentPhase, this.dayCount);
+    }
+  }
+
   private advancePhase() {
     const currentIndex = PHASE_ORDER.indexOf(this.currentPhase);
     const nextIndex = (currentIndex + 1) % PHASE_ORDER.length;

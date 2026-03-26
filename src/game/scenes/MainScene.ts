@@ -8,8 +8,8 @@ import { Human } from '../objects/Human';
 import { SkillTreeUI } from '../objects/SkillTreeUI';
 import { JuiceEffects } from '../objects/JuiceEffects';
 import { AbilityUI } from '../abilities/AbilityUI';
-import { removeSplashScreen } from '../utils/utils';
 import { UIScene } from './UIScene';
+import { SaveManager } from '../SaveManager';
 
 const SKY_COLORS: Record<GamePhase, { r: number; g: number; b: number }> = {
   [GamePhase.Night]: { r: 0x0a, g: 0x0a, b: 0x1a },
@@ -62,13 +62,18 @@ export class MainScene extends CustomScene {
   private camStartX: number = 0;
   private camStartY: number = 0;
 
+  private loadSave: boolean = false;
+
   constructor() {
     super('MainScene');
   }
 
+  init(data?: { loadSave?: boolean }) {
+    this.loadSave = data?.loadSave ?? false;
+  }
+
   create() {
     super.create();
-    removeSplashScreen(this);
 
     this.canvasHeight = this.cameras.main.height;
     this.canvasWidth = this.cameras.main.width;
@@ -176,6 +181,7 @@ export class MainScene extends CustomScene {
         this.clickCooldownTimer = 0;
         this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
+        this.autoSave();
       }
       if (phase === GamePhase.Sunset) {
         this.forceAllTurnBack();
@@ -290,6 +296,11 @@ export class MainScene extends CustomScene {
     // Debug shortcuts (Space = skip phase, F = fast-forward 10s)
     this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
       if (this.runEnded) return;
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        this.openPauseMenu();
+        return;
+      }
       if (e.code === 'Space') {
         e.preventDefault();
         this.gameManager.skipPhase();
@@ -301,6 +312,11 @@ export class MainScene extends CustomScene {
         this.decorManager.forceSpawn(1);
       }
     });
+
+    // Load saved state if requested
+    if (this.loadSave) {
+      this.applySaveData();
+    }
   }
 
   // ── Ability execution ──
@@ -505,5 +521,52 @@ export class MainScene extends CustomScene {
       dayCount: this.gameManager.getDayCount(),
       population: this.populationManager.population,
     });
+  }
+
+  openPauseMenu() {
+    if (this.scene.isActive('PauseMenuScene')) return;
+    this.gameManager.pause();
+    this.scene.pause('MainScene');
+    this.scene.pause('UIScene');
+    this.scene.launch('PauseMenuScene');
+    this.scene.bringToTop('PauseMenuScene');
+  }
+
+  private autoSave() {
+    SaveManager.save({
+      version: 1,
+      timestamp: Date.now(),
+      currentPhase: this.gameManager.getPhase(),
+      phaseElapsed: this.gameManager.getPhaseElapsed(),
+      dayCount: this.gameManager.getDayCount(),
+      population: this.populationManager.population,
+      jumped: this.populationManager.jumped,
+      turnedBack: this.populationManager.turnedBack,
+      born: this.populationManager.born,
+      stats: { ...this.populationManager.stats },
+      souls: this.constellationManager.souls,
+      unlockedNodes: Array.from(this.constellationManager.unlockedNodes),
+      bonuses: JSON.parse(JSON.stringify(this.constellationManager.bonuses)),
+    });
+  }
+
+  private applySaveData() {
+    const data = SaveManager.load();
+    if (!data) return;
+
+    // Restore GameManager state
+    this.gameManager.restoreState(data.currentPhase, data.phaseElapsed, data.dayCount);
+
+    // Restore PopulationManager state
+    this.populationManager.population = data.population;
+    this.populationManager.jumped = data.jumped;
+    this.populationManager.turnedBack = data.turnedBack;
+    this.populationManager.born = data.born;
+    Object.assign(this.populationManager.stats, data.stats);
+
+    // Restore ConstellationManager state
+    this.constellationManager.souls = data.souls;
+    this.constellationManager.unlockedNodes = new Set(data.unlockedNodes);
+    this.constellationManager.bonuses = JSON.parse(JSON.stringify(data.bonuses));
   }
 }
