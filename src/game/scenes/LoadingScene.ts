@@ -15,11 +15,12 @@ export class LoadingScene extends Phaser.Scene {
     });
     this.load.image('soul', './assets/images/soul.png');
     this.load.image('star', './assets/images/star.png');
+
+    // Fire-and-forget font loading (non-blocking, compatible Capacitor)
+    document.fonts.load('16px "PixelSleigh"').then(() => {});
   }
 
   async create() {
-    // Wait for custom font to be loaded before starting scenes
-    await document.fonts.load('16px PixelSleigh');
     this.scene.start('MainScene');
     this.scene.start('UIScene');
     this.scene.bringToTop('UIScene');

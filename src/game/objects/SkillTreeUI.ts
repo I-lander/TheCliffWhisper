@@ -62,7 +62,9 @@ export class SkillTreeUI {
   private tooltipName!: Phaser.GameObjects.Text;
   private tooltipDesc!: Phaser.GameObjects.Text;
   private tooltipCost!: Phaser.GameObjects.Text;
-  private unlockBtn!: Phaser.GameObjects.Text;
+  private unlockBtnContainer!: Phaser.GameObjects.Container;
+  private unlockBtnBg!: Phaser.GameObjects.Graphics;
+  private unlockBtnText!: Phaser.GameObjects.Text;
   private selectedNode: { treeId: string; nodeIndex: number } | null = null;
 
   private baseX: number;
@@ -150,32 +152,47 @@ export class SkillTreeUI {
       color: '#ffcc44',
       fontFamily: 'PixelSleigh',
     });
-    this.unlockBtn = scene.add.text(0, lineH * 3.2, '[ Unlock ]', {
-      fontSize: `${ttFont}px`,
-      color: '#44ff88',
-      fontFamily: 'PixelSleigh',
-    })
-      .setInteractive({ useHandCursor: true })
-      .setVisible(false);
-    this.unlockBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.unlockBtn.setColor('#ffffff'));
-    this.unlockBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.unlockBtn.setColor('#44ff88'));
-    this.unlockBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      if (!this.selectedNode) return;
-      const success = this.constellationMgr.unlockNode(this.selectedNode.treeId, this.selectedNode.nodeIndex);
-      if (success) {
-        this.selectedNode = null;
-        this.tooltipContainer.setVisible(false);
-        this.refresh();
-      }
-    });
     this.tooltipContainer.add([
       this.tooltipBg,
       this.tooltipName,
       this.tooltipDesc,
       this.tooltipCost,
-      this.unlockBtn,
     ]);
-    this.container.add(this.tooltipContainer);
+
+    // Unlock button — separate from tooltip, fixed to screen bottom, large touch target
+    const btnFontSize = Math.round(tileSize * 0.55);
+    const btnW = tileSize * 6;
+    const btnH = tileSize * 1.5;
+    const btnX = (cam.width - btnW) / 2;
+    const btnYPos = cam.height - tileSize * 3.5;
+    const pu = tileSize / 16;
+
+    this.unlockBtnContainer = scene.add.container(0, 0).setScrollFactor(0).setDepth(210).setVisible(false);
+    this.unlockBtnBg = scene.add.graphics();
+    createUIPanel(this.unlockBtnBg, btnX, btnYPos, btnW, btnH, pu, 0x44ff88, 0.8, { color: 0x0a0a1a, alpha: 0.92 });
+    this.unlockBtnText = scene.add.text(cam.width / 2, btnYPos + btnH / 2, 'Unlock', {
+      fontSize: `${btnFontSize}px`,
+      color: '#44ff88',
+      fontFamily: 'PixelSleigh',
+    }).setOrigin(0.5).setScrollFactor(0);
+
+    const btnHitZone = scene.add.rectangle(cam.width / 2, btnYPos + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true })
+      .setAlpha(0.001)
+      .setScrollFactor(0);
+    btnHitZone.on(Phaser.Input.Events.POINTER_OVER, () => this.unlockBtnText.setColor('#ffffff'));
+    btnHitZone.on(Phaser.Input.Events.POINTER_OUT, () => this.unlockBtnText.setColor('#44ff88'));
+    btnHitZone.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      if (!this.selectedNode) return;
+      const success = this.constellationMgr.unlockNode(this.selectedNode.treeId, this.selectedNode.nodeIndex);
+      if (success) {
+        this.selectedNode = null;
+        this.tooltipContainer.setVisible(false);
+        this.unlockBtnContainer.setVisible(false);
+        this.refresh();
+      }
+    });
+    this.unlockBtnContainer.add([this.unlockBtnBg, this.unlockBtnText, btnHitZone]);
 
     this.setVisible(false);
   }
@@ -188,7 +205,11 @@ export class SkillTreeUI {
     this.container.setVisible(true);
     // UI overlay (budget, end night) only during night
     this.uiOverlay.setVisible(visible);
-    if (!visible) this.tooltipContainer.setVisible(false);
+    if (!visible) {
+      this.tooltipContainer.setVisible(false);
+      this.unlockBtnContainer.setVisible(false);
+      this.selectedNode = null;
+    }
     this.refresh();
   }
 
@@ -375,14 +396,13 @@ export class SkillTreeUI {
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
-    // Show unlock button only if affordable
-    this.unlockBtn.setVisible(canUnlock);
+    // Show unlock button (separate container) only if affordable
+    this.unlockBtnContainer.setVisible(canUnlock);
     this.selectedNode = canUnlock ? { treeId, nodeIndex } : null;
 
-    const bottomEl = canUnlock ? this.unlockBtn : this.tooltipCost;
     const w =
-      Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width, canUnlock ? this.unlockBtn.width : 0) + pad * 2;
-    const h = bottomEl.y + bottomEl.height + pad;
+      Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width) + pad * 2;
+    const h = this.tooltipCost.y + this.tooltipCost.height + pad;
     const pu = this.scene.cameras.main.height / 288;
 
     this.tooltipBg.clear();

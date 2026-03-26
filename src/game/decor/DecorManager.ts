@@ -5,15 +5,17 @@ import { DecorDef, DECOR_CATALOG } from './DecorData';
 export interface PlacedDecor {
   def: DecorDef;
   slotIndex: number;
-  /** If true, this decor sits on a hill (1 tile higher, with ground tile below) */
-  elevated: boolean;
+  /** 0 = ground level, 1+ = elevated (hill height in tiles) */
+  elevation: number;
 }
+
+const MAX_ELEVATION = 3;
 
 export class DecorManager {
   placed: PlacedDecor[] = [];
   totalSlots: number;
-  private groundOccupied: Set<number> = new Set();
-  private elevatedOccupied: Set<number> = new Set();
+  /** Track occupation per slot: elevation level occupied (0=ground, 1=first hill, etc.) */
+  private occupied: Map<number, number> = new Map(); // slot → max elevation placed
 
   /** Callback fired when a new decor appears (for rendering + notification) */
   private onDecorPlaced: (placed: PlacedDecor) => void = () => {};
@@ -43,7 +45,10 @@ export class DecorManager {
   }
 
   private isFull(): boolean {
-    return this.groundOccupied.size >= this.totalSlots && this.elevatedOccupied.size >= this.totalSlots;
+    for (let i = 1; i < this.totalSlots - 1; i++) {
+      if ((this.occupied.get(i) ?? -1) < MAX_ELEVATION) return false;
+    }
+    return true;
   }
 
   update(delta: number) {
@@ -65,37 +70,35 @@ export class DecorManager {
   }
 
   private placeOne() {
-    // Collect available positions: ground slots, and elevated slots (only where ground is occupied)
-    const emptyGround: number[] = [];
-    const emptyElevated: number[] = [];
-    for (let i = 0; i < this.totalSlots; i++) {
-      if (!this.groundOccupied.has(i)) {
-        emptyGround.push(i);
-      } else if (!this.elevatedOccupied.has(i)) {
-        emptyElevated.push(i);
+    // Collect available positions — skip slot 0 and last slot (hills need 1 tile margin)
+    const available: { slot: number; elevation: number }[] = [];
+    for (let i = 1; i < this.totalSlots - 1; i++) {
+      const currentLevel = this.occupied.get(i) ?? -1;
+      if (currentLevel < MAX_ELEVATION) {
+        available.push({ slot: i, elevation: currentLevel + 1 });
       }
     }
 
-    if (emptyGround.length === 0 && emptyElevated.length === 0) return;
+    if (available.length === 0) return;
 
     const def = DECOR_CATALOG[Math.floor(Math.random() * DECOR_CATALOG.length)];
 
-    // 30% chance to place elevated (hill) if possible, otherwise ground
-    let elevated = false;
-    let slotIndex: number;
+    // Prefer ground level (elevation 0) first, then stack with 30% chance
+    const groundSlots = available.filter((a) => a.elevation === 0);
+    const elevatedSlots = available.filter((a) => a.elevation > 0);
 
-    if (emptyElevated.length > 0 && (emptyGround.length === 0 || Math.random() < 0.3)) {
-      elevated = true;
-      slotIndex = emptyElevated[Math.floor(Math.random() * emptyElevated.length)];
-      this.elevatedOccupied.add(slotIndex);
-    } else if (emptyGround.length > 0) {
-      slotIndex = emptyGround[Math.floor(Math.random() * emptyGround.length)];
-      this.groundOccupied.add(slotIndex);
+    let pick: { slot: number; elevation: number };
+    if (elevatedSlots.length > 0 && (groundSlots.length === 0 || Math.random() < 0.3)) {
+      pick = elevatedSlots[Math.floor(Math.random() * elevatedSlots.length)];
+    } else if (groundSlots.length > 0) {
+      pick = groundSlots[Math.floor(Math.random() * groundSlots.length)];
     } else {
       return;
     }
 
-    const placed: PlacedDecor = { def, slotIndex, elevated };
+    this.occupied.set(pick.slot, pick.elevation);
+
+    const placed: PlacedDecor = { def, slotIndex: pick.slot, elevation: pick.elevation };
     this.placed.push(placed);
     def.apply(this.stats);
 
@@ -131,6 +134,6 @@ export class DecorManager {
   }
 
   getOccupiedCount(): number {
-    return this.groundOccupied.size + this.elevatedOccupied.size;
+    return this.placed.length;
   }
 }

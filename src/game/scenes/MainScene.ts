@@ -3,6 +3,7 @@ import { GameManager, GamePhase } from '../GameManager';
 import { PopulationManager } from '../PopulationManager';
 import { ConstellationManager } from '../constellations/ConstellationManager';
 import { DecorManager } from '../decor/DecorManager';
+import { CliffTilemap } from '../decor/CliffTilemap';
 import { Human } from '../objects/Human';
 import { SkillTreeUI } from '../objects/SkillTreeUI';
 import { JuiceEffects } from '../objects/JuiceEffects';
@@ -22,10 +23,10 @@ export class MainScene extends CustomScene {
   populationManager!: PopulationManager;
   constellationManager!: ConstellationManager;
   decorManager!: DecorManager;
+  private cliffTilemap!: CliffTilemap;
   private skillTreeUI!: SkillTreeUI;
   private abilityUI!: AbilityUI;
   private juiceEffects!: JuiceEffects;
-  private decorContainer!: Phaser.GameObjects.Container;
   private endDayBtn!: Phaser.GameObjects.Text;
 
   canvasWidth: number = 0;
@@ -77,15 +78,23 @@ export class MainScene extends CustomScene {
     this.cliffEdgeX = this.canvasWidth * 0.75;
     this.spawnX = -this.tileSize;
 
-    this.drawCliff();
+    // Tilemap: cols = cliff width in tiles (minus margin), rows = max hill height + 1 ground
+    const tilemapCols = Math.floor(this.cliffEdgeX / this.tileSize) - 1;
+    const tilemapRows = 5; // 1 ground + up to 4 levels of hills
+    const tilemapOriginX = 0;
+    const tilemapOriginY = this.groundY - (tilemapRows - 1) * this.tileSize;
+    this.cliffTilemap = new CliffTilemap(
+      this, tilemapCols, tilemapRows,
+      this.tileSize, tilemapOriginX, tilemapOriginY,
+    );
+    this.cliffTilemap.renderAll();
+    this.drawCliffEdge();
 
     // Managers
     this.gameManager = new GameManager();
     this.populationManager = new PopulationManager(this.gameManager);
 
-    this.constellationManager = new ConstellationManager(
-      this.populationManager.stats,
-    );
+    this.constellationManager = new ConstellationManager(this.populationManager.stats);
 
     // Decor system
     this.decorManager = new DecorManager(
@@ -94,10 +103,24 @@ export class MainScene extends CustomScene {
       this.populationManager.stats,
       this.gameManager,
     );
-    this.decorContainer = this.add.container(0, 0);
 
     this.decorManager.setOnDecorPlaced((placed) => {
-      this.addDecorSprite(placed.def.frameIndex, placed.slotIndex, placed.elevated);
+      // For elevated decor, make the hill columns solid first
+      if (placed.elevation > 0) {
+        const row = this.cliffTilemap.rows - 1 - placed.elevation;
+        // Make 3 tiles solid (center + left + right) to form the hill
+        for (let dc = -1; dc <= 1; dc++) {
+          const c = placed.slotIndex + dc;
+          if (c >= 0 && c < this.cliffTilemap.cols) {
+            this.cliffTilemap.setSolid(c, row);
+          }
+        }
+      }
+      // Place the decor element on top of the solid cell
+      const topRow = this.cliffTilemap.getTopSolidRow(placed.slotIndex);
+      if (topRow >= 0) {
+        this.cliffTilemap.placeElement(placed.slotIndex, topRow, placed.def.frameIndex, placed.def.id);
+      }
     });
 
     // Skill tree UI (night phase)
@@ -240,8 +263,14 @@ export class MainScene extends CustomScene {
       const minScrollY = -this.canvasHeight * 4;
       const maxScrollX = this.canvasWidth * 0.8;
       const minScrollX = -this.canvasWidth * 0.8;
-      this.cameras.main.scrollX = Math.max(minScrollX, Math.min(maxScrollX, this.cameras.main.scrollX));
-      this.cameras.main.scrollY = Math.max(minScrollY, Math.min(maxScrollY, this.cameras.main.scrollY));
+      this.cameras.main.scrollX = Math.max(
+        minScrollX,
+        Math.min(maxScrollX, this.cameras.main.scrollX),
+      );
+      this.cameras.main.scrollY = Math.max(
+        minScrollY,
+        Math.min(maxScrollY, this.cameras.main.scrollY),
+      );
     });
 
     this.input.on(Phaser.Input.Events.POINTER_UP, () => {
@@ -257,6 +286,9 @@ export class MainScene extends CustomScene {
       }
       if (e.code === 'KeyF') {
         this.gameManager.update(10_000);
+      }
+      if (e.code === 'KeyD') {
+        this.decorManager.forceSpawn(1);
       }
     });
   }
@@ -300,94 +332,23 @@ export class MainScene extends CustomScene {
     }
   }
 
-  // ── Decor sprites ──
-
-  private addDecorSprite(frameIndex: number, slotIndex: number, elevated: boolean = false) {
-    const scale = this.tileSize / 16;
-    const x = slotIndex * this.tileSize;
-    const baseY = this.groundY - this.tileSize;
-    const y = elevated ? baseY - this.tileSize : baseY;
-
-    // If elevated, draw a 3-tile-wide hill using same sprites as cliff
-    if (elevated) {
-      const hillX = x - this.tileSize;
-      const hillW = this.tileSize * 3;
-      const groundFrame = 14 * 16 + 1;  // same as cliff ground surface
-      const faceFrame = 15 * 16 + 1;    // same as cliff face
-      const hillAlpha = 0.7;
-
-      // Hill body (fill)
-      const ground = this.add.graphics();
-      ground.fillStyle(0x222222);
-      ground.fillRect(hillX, baseY, hillW, this.tileSize);
-      this.decorContainer.addAt(ground, 0);
-
-      // Ground surface on top of hill (3 tiles)
-      for (let i = 0; i < 3; i++) {
-        this.decorContainer.add(
-          this.add.image(hillX + i * this.tileSize, baseY - this.tileSize, 'worldElement', groundFrame)
-            .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha),
-        );
-      }
-
-      // Face tiles on left and right sides of the hill
-      this.decorContainer.add(
-        this.add.image(hillX, baseY, 'worldElement', faceFrame)
-          .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha),
-      );
-      this.decorContainer.add(
-        this.add.image(hillX + this.tileSize * 2, baseY, 'worldElement', faceFrame)
-          .setOrigin(0, 0).setScale(scale).setAlpha(hillAlpha).setFlipX(true),
-      );
-    }
-
-    const sprite = this.add
-      .image(x, y, 'worldElement', frameIndex)
-      .setOrigin(0, 0)
-      .setScale(scale)
-      .setAlpha(0);
-
-    this.tweens.add({
-      targets: sprite,
-      alpha: 1,
-      scaleX: scale * 1.3,
-      scaleY: scale * 1.3,
-      duration: 150,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        this.tweens.add({
-          targets: sprite,
-          scaleX: scale,
-          scaleY: scale,
-          duration: 200,
-          ease: 'Power2',
-        });
-      },
-    });
-
-    this.decorContainer.add(sprite);
-  }
-
   // ── Cliff rendering ──
 
-  private drawCliff() {
+  /** Draw the cliff body fill + the vertical right edge (not managed by tilemap). */
+  private drawCliffEdge() {
     const g = this.add.graphics();
     g.fillStyle(0x222222);
     g.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.tileSize, this.canvasHeight - this.groundY);
 
     const scale = this.tileSize / 16;
-    const groundFrame = 14 * 16 + 1;
     const faceFrame = 15 * 16 + 1;
     const cornerFrame = 15 * 16 + 2;
 
-    for (let tx = 0; tx < this.cliffEdgeX - this.tileSize; tx += this.tileSize) {
-      this.add.image(tx, this.groundY - this.tileSize, 'worldElement', groundFrame)
-        .setOrigin(0, 0).setScale(scale);
-    }
-
+    // Corner at top-right of cliff
     this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
       .setOrigin(1, 0).setScale(scale);
 
+    // Vertical face going down
     for (let ty = this.groundY + this.tileSize; ty < this.canvasHeight; ty += this.tileSize) {
       this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
         .setOrigin(1, 0).setScale(scale);
@@ -475,7 +436,9 @@ export class MainScene extends CustomScene {
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
         // Soul gain with multiplier
-        const soulGain = Math.floor(this.constellationManager.bonuses.soulMultiplier * (this.soulHarvestActive ? 2 : 1));
+        const soulGain = Math.floor(
+          this.constellationManager.bonuses.soulMultiplier * (this.soulHarvestActive ? 2 : 1),
+        );
         for (let s = 0; s < soulGain; s++) this.constellationManager.onHumanKilled();
         this.juiceEffects.onJump(jumpX, jumpY);
 

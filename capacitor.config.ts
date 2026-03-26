@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.donkeysisle.thecliffwhisperer',
-  appName: 'the-cliff-whisperer',
+  appName: 'The Cliff Whisperer',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
