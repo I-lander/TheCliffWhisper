@@ -177,18 +177,19 @@ export class AbilityUI {
   }
 
   private getAbilityStats(id: string, b: ConstellationBonuses): string {
-    const cd = (v: number) => t('ability.stat.cd').replace('{cd}', String(v / 1000));
+    const f = (v: number) => v % 1 === 0 ? String(v) : v.toFixed(2);
+    const cd = (v: number) => t('ability.stat.cd').replace('{cd}', f(v / 1000));
     switch (id) {
       case 'frenzy_pulse':
-        return `${t('ability.stat.speed').replace('{mult}', String(b.frenzyPulse.multiplier)).replace('{dur}', String(b.frenzyPulse.duration / 1000))}\n${cd(b.frenzyPulse.cooldown)}`;
+        return `${t('ability.stat.speed').replace('{mult}', f(b.frenzyPulse.multiplier)).replace('{dur}', f(b.frenzyPulse.duration / 1000))}\n${cd(b.frenzyPulse.cooldown)}`;
       case 'void_call':
-        return `${t('ability.stat.turnBack').replace('{dur}', String(b.voidCall.duration / 1000))}\n${cd(b.voidCall.cooldown)}`;
+        return `${t('ability.stat.turnBack').replace('{dur}', f(b.voidCall.duration / 1000))}\n${cd(b.voidCall.cooldown)}`;
       case 'dark_wave':
         return `${t('ability.stat.spawn').replace('{count}', String(b.darkWave.count))}\n${cd(b.darkWave.cooldown)}`;
       case 'soul_harvest':
-        return `${t('ability.stat.souls').replace('{mult}', String(b.soulHarvest.multiplier)).replace('{dur}', String(b.soulHarvest.duration / 1000))}\n${cd(b.soulHarvest.cooldown)}`;
+        return `${t('ability.stat.souls').replace('{mult}', f(b.soulHarvest.multiplier)).replace('{dur}', f(b.soulHarvest.duration / 1000))}\n${cd(b.soulHarvest.cooldown)}`;
       case 'silence':
-        return `${t('ability.stat.births').replace('{dur}', String(b.silence.duration / 1000))}\n${cd(b.silence.cooldown)}`;
+        return `${t('ability.stat.births').replace('{dur}', f(b.silence.duration / 1000))}\n${cd(b.silence.cooldown)}`;
       default:
         return '';
     }
@@ -220,7 +221,7 @@ export class AbilityUI {
         const progress = newVal / totalCd;
         btn.label.setAlpha(0.3);
         btn.cdText.setVisible(true);
-        btn.cdText.setText(`${Math.ceil(newVal / 1000)}s`);
+        btn.cdText.setText(`${(newVal / 1000).toFixed(2)}s`);
         btn.bg.setAlpha(0.3 + 0.7 * (1 - progress));
       } else {
         btn.label.setAlpha(1);

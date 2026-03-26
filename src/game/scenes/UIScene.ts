@@ -144,15 +144,16 @@ export class UIScene extends CustomScene {
     // Bottom-left: detailed stats
     const s = this.populationManager.stats;
     const bonuses = this.mainScene.constellationManager.bonuses;
+    const f = (v: number) => v % 1 === 0 ? String(v) : v.toFixed(2);
     const lines = [
-      `${t('stats.walkSpeed')}: ${s.walkSpeed}`,
-      `${t('stats.turnBackRate')}: ${Math.round(s.turnBackRate * 100)}%`,
-      `${t('stats.dragRate')}: ${Math.round(s.dragRate * 100)}%`,
-      `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(1)}s`,
+      `${t('stats.walkSpeed')}: ${f(s.walkSpeed)}`,
+      `${t('stats.turnBackRate')}: ${(this.populationManager.getEffectiveTurnBackRate() * 100).toFixed(2)}%`,
+      `${t('stats.dragRate')}: ${(s.dragRate * 100).toFixed(2)}%`,
+      `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(2)}s`,
       `${t('stats.autoClickers')}: ${bonuses.autoClickerCount}`,
-      `${t('stats.soulMult')}: x${bonuses.soulMultiplier}`,
-      `${t('stats.birthRate')}: +${s.birthRate}/${t('hud.day').toLowerCase()}`,
-      `${t('stats.birthPerSec')}: ${s.birthratePerSec}`,
+      `${t('stats.soulMult')}: x${f(bonuses.soulMultiplier)}`,
+      `${t('stats.birthRate')}: +${f(s.birthRate)}/${t('hud.day').toLowerCase()}`,
+      `${t('stats.birthPerSec')}: ${f(s.birthratePerSec)}`,
     ];
     this.statsText.setText(lines.join('\n'));
   }

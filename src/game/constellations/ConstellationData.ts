@@ -1,4 +1,4 @@
-import { PopulationStats } from '../PopulationManager';
+import { PopulationStats, TURN_BACK_MIN } from '../PopulationManager';
 
 export interface SkillNode {
   id: string;
@@ -65,7 +65,7 @@ function p(deg: number, r: number, wx = 0, wy = 0): { x: number; y: number } {
 
 // Shorthand stat helpers
 const ws = (v: number) => (s: PopulationStats) => { s.walkSpeed += v; };
-const tb = (v: number) => (s: PopulationStats) => { s.turnBackRate = Math.max(0, s.turnBackRate - v); };
+const tb = (v: number) => (s: PopulationStats) => { s.turnBackRate = Math.max(TURN_BACK_MIN, s.turnBackRate - v); };
 const dr = (v: number) => (s: PopulationStats) => { s.dragRate = Math.min(1, s.dragRate + v); };
 const cc = (v: number) => (s: PopulationStats) => { s.clickCooldown = Math.max(100, s.clickCooldown - v); };
 const ac = (v: number) => (_s: PopulationStats, b: ConstellationBonuses) => { b.autoClickerCount += v; };
@@ -199,45 +199,45 @@ const NODES: SkillNode[] = [
   // DEVOTION — turnBackRate (nodes 24-46)
   // ═══════════════════════════════════════════════════════════════
 
-  // Trunk (10 nodes): -0.01, -0.01, -0.02, -0.02, -0.02, -0.03, -0.03, -0.03, -0.04, -0.04 = -0.25
+  // Trunk (10 nodes): -0.01×3, -0.01×3, -0.01×2, -0.02×2 = -0.13
   { id: 'de_1', name: 'Linger', cost: 3, description: 'Turn-back rate -0.01',
     ...p(DEVOTION_DEG, trunkR(0)), apply: tb(0.01) },
   { id: 'de_2', name: 'Hesitation', cost: 5, description: 'Turn-back rate -0.01',
     ...p(DEVOTION_DEG, trunkR(1)), apply: tb(0.01) },
-  { id: 'de_3', name: 'Doubt', cost: 8, description: 'Turn-back rate -0.02',
-    ...p(DEVOTION_DEG, trunkR(2)), apply: tb(0.02) },
-  { id: 'de_4', name: 'Wavering Faith', cost: 12, description: 'Turn-back rate -0.02',
-    ...p(DEVOTION_DEG, trunkR(3)), apply: tb(0.02) },
-  { id: 'de_5', name: 'Fading Hope', cost: 18, description: 'Turn-back rate -0.02',
-    ...p(DEVOTION_DEG, trunkR(4)), apply: tb(0.02) },
-  { id: 'de_6', name: 'Conviction', cost: 25, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG, trunkR(5)), apply: tb(0.03) },
-  { id: 'de_7', name: 'Blind Devotion', cost: 35, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG, trunkR(6)), apply: tb(0.03) },
-  { id: 'de_8', name: 'No Return', cost: 45, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG, trunkR(7)), apply: tb(0.03) },
-  { id: 'de_9', name: 'The Abyss Calls', cost: 60, description: 'Turn-back rate -0.04',
-    ...p(DEVOTION_DEG, trunkR(8)), apply: tb(0.04) },
-  { id: 'de_10', name: 'Absolute Faith', cost: 80, description: 'Turn-back rate -0.04',
-    ...p(DEVOTION_DEG, trunkR(9)), apply: tb(0.04) },
+  { id: 'de_3', name: 'Doubt', cost: 8, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(2)), apply: tb(0.01) },
+  { id: 'de_4', name: 'Wavering Faith', cost: 12, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(3)), apply: tb(0.01) },
+  { id: 'de_5', name: 'Fading Hope', cost: 18, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(4)), apply: tb(0.01) },
+  { id: 'de_6', name: 'Conviction', cost: 25, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(5)), apply: tb(0.01) },
+  { id: 'de_7', name: 'Blind Devotion', cost: 35, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(6)), apply: tb(0.01) },
+  { id: 'de_8', name: 'No Return', cost: 45, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG, trunkR(7)), apply: tb(0.01) },
+  { id: 'de_9', name: 'The Abyss Calls', cost: 60, description: 'Turn-back rate -0.02',
+    ...p(DEVOTION_DEG, trunkR(8)), apply: tb(0.02) },
+  { id: 'de_10', name: 'Absolute Faith', cost: 80, description: 'Turn-back rate -0.02',
+    ...p(DEVOTION_DEG, trunkR(9)), apply: tb(0.02) },
 
-  // Fork A (from node 4, 4 nodes): -0.02, -0.03, -0.03, -0.04 = -0.12
-  { id: 'de_fa1', name: 'Seeds of Surrender', cost: 10, description: 'Turn-back rate -0.02',
-    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(0)), apply: tb(0.02) },
-  { id: 'de_fa2', name: 'Congregation of Shadows', cost: 18, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(1)), apply: tb(0.03) },
-  { id: 'de_fa3', name: 'Mass Hypnosis', cost: 28, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(2)), apply: tb(0.03) },
-  { id: 'de_fa4', name: 'Unbreakable Trance', cost: 42, description: 'Turn-back rate -0.04',
-    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(3)), apply: tb(0.04) },
+  // Fork A (from node 4, 4 nodes): -0.01×4 = -0.04
+  { id: 'de_fa1', name: 'Seeds of Surrender', cost: 10, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(0)), apply: tb(0.01) },
+  { id: 'de_fa2', name: 'Congregation of Shadows', cost: 18, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(1)), apply: tb(0.01) },
+  { id: 'de_fa3', name: 'Mass Hypnosis', cost: 28, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(2)), apply: tb(0.01) },
+  { id: 'de_fa4', name: 'Unbreakable Trance', cost: 42, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_A_OFFSET, forkAR(3)), apply: tb(0.01) },
 
-  // Fork B (from node 7, 3 nodes): -0.03, -0.04, -0.05 = -0.12
-  { id: 'de_fb1', name: 'Silenced Doubt', cost: 30, description: 'Turn-back rate -0.03',
-    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(0)), apply: tb(0.03) },
-  { id: 'de_fb2', name: 'Covenant of Falling', cost: 45, description: 'Turn-back rate -0.04',
-    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(1)), apply: tb(0.04) },
-  { id: 'de_fb3', name: 'Absolute Obedience', cost: 65, description: 'Turn-back rate -0.05',
-    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(2)), apply: tb(0.05) },
+  // Fork B (from node 7, 3 nodes): -0.01×3 = -0.03
+  { id: 'de_fb1', name: 'Silenced Doubt', cost: 30, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(0)), apply: tb(0.01) },
+  { id: 'de_fb2', name: 'Covenant of Falling', cost: 45, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(1)), apply: tb(0.01) },
+  { id: 'de_fb3', name: 'Absolute Obedience', cost: 65, description: 'Turn-back rate -0.01',
+    ...p(DEVOTION_DEG + FORK_B_OFFSET, forkBR(2)), apply: tb(0.01) },
 
   // Ability: Void Call (from node 5, 6 nodes)
   { id: 'de_ab1', name: 'Void Call', cost: 20, description: 'Unlock: Turn-back = 0 for 5s (cd 30s)',

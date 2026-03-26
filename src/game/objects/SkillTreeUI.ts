@@ -6,16 +6,22 @@ import { AUDIO_KEYS } from '../audio/AudioManager';
 
 const LOCKED_ALPHA = 0.18;
 
-// Node tiers — root is keystone, branch tips are notable, rest are minor
-type NodeTier = 'keystone' | 'notable' | 'minor';
+// Node tiers — root is keystone, ability unlocks are highlighted, branch tips are notable, rest are minor
+type NodeTier = 'keystone' | 'ability' | 'notable' | 'minor';
 
 const TIER_RADIUS: Record<NodeTier, number> = {
   keystone: 14,
+  ability: 12,
   notable: 10,
   minor: 6,
 };
 
-// Notable nodes: trunk tips, fork tips, and ability unlock nodes
+// Ability unlock nodes — displayed with special emphasis
+const ABILITY_UNLOCK_IDS = new Set([
+  've_ab1', 'de_ab1', 'co_ab1', 'ma_ab1', 'ge_ab1',
+]);
+
+// Notable nodes: trunk tips, fork tips, and ability final upgrades
 const BRANCH_TIP_IDS = new Set([
   // Trunk tips (node 10 of each branch)
   've_10', 'de_10', 'co_10', 'ma_10', 'ge_10',
@@ -23,8 +29,6 @@ const BRANCH_TIP_IDS = new Set([
   've_fa4', 'de_fa4', 'co_fa4', 'ma_fa4', 'ge_fa4',
   // Fork B tips
   've_fb3', 'de_fb3', 'co_fb3', 'ma_fb3', 'ge_fb3',
-  // Ability unlock nodes
-  've_ab1', 'de_ab1', 'co_ab1', 'ma_ab1', 'ge_ab1',
   // Ability final upgrades
   've_ab6', 'de_ab6', 'co_ab6', 'ma_ab6', 'ge_ab6',
 ]);
@@ -46,6 +50,7 @@ function getBranchColor(nodeId: string): number {
 
 function getNodeTier(nodeId: string): NodeTier {
   if (nodeId === 'root') return 'keystone';
+  if (ABILITY_UNLOCK_IDS.has(nodeId)) return 'ability';
   if (BRANCH_TIP_IDS.has(nodeId)) return 'notable';
   return 'minor';
 }
@@ -361,15 +366,16 @@ export class SkillTreeUI {
       // Day mode: only draw unlocked nodes
       if (!this.isNight && !isUnlocked) return;
 
-      const starScale = (tier === 'keystone' ? 1.8 : tier === 'notable' ? 1.2 : 0.7) * (this.scene.cameras.main.height / 18 / 16);
+      const isAbility = tier === 'ability';
+      const starScale = (tier === 'keystone' ? 1.8 : isAbility ? 1.5 : tier === 'notable' ? 1.2 : 0.7) * (this.scene.cameras.main.height / 18 / 16);
 
       if (isUnlocked) {
         // Glow behind star
         const glow = this.scene.add.graphics();
-        glow.fillStyle(branchColor, 0.08);
-        glow.fillCircle(pos.x, pos.y, radius * 3);
-        glow.fillStyle(branchColor, 0.15);
-        glow.fillCircle(pos.x, pos.y, radius * 1.8);
+        glow.fillStyle(branchColor, isAbility ? 0.12 : 0.08);
+        glow.fillCircle(pos.x, pos.y, radius * (isAbility ? 4 : 3));
+        glow.fillStyle(branchColor, isAbility ? 0.25 : 0.15);
+        glow.fillCircle(pos.x, pos.y, radius * (isAbility ? 2.5 : 1.8));
         glow.setAlpha(dayAlpha);
         container.add(glow);
         // Star sprite tinted with branch color
@@ -381,12 +387,36 @@ export class SkillTreeUI {
         star.setTintFill(0xffffff);
         container.add(center);
       } else if (canUnlock) {
-        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.9).setAlpha(0.5 * dayAlpha);
+        // Ability nodes: pulsing outer ring when unlockable
+        if (isAbility) {
+          const pulseGlow = this.scene.add.graphics();
+          pulseGlow.fillStyle(branchColor, 0.15);
+          pulseGlow.fillCircle(pos.x, pos.y, radius * 3.5);
+          pulseGlow.setAlpha(dayAlpha);
+          container.add(pulseGlow);
+          this.scene.tweens.add({
+            targets: pulseGlow,
+            alpha: { from: 0.15 * dayAlpha, to: 0.4 * dayAlpha },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+          });
+        }
+        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.9).setAlpha((isAbility ? 0.7 : 0.5) * dayAlpha);
         star.setTintFill(branchColor);
         container.add(star);
       } else {
-        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * 0.6).setAlpha(LOCKED_ALPHA * dayAlpha);
-        star.setTintFill(0x445566);
+        // Ability nodes: still bigger and slightly brighter when locked
+        if (isAbility) {
+          const dimGlow = this.scene.add.graphics();
+          dimGlow.fillStyle(branchColor, 0.06);
+          dimGlow.fillCircle(pos.x, pos.y, radius * 2.5);
+          dimGlow.setAlpha(dayAlpha);
+          container.add(dimGlow);
+        }
+        const star = this.scene.add.image(pos.x, pos.y, 'star').setScale(starScale * (isAbility ? 0.8 : 0.6)).setAlpha((isAbility ? LOCKED_ALPHA * 1.5 : LOCKED_ALPHA) * dayAlpha);
+        star.setTintFill(isAbility ? branchColor : 0x445566);
         container.add(star);
       }
 

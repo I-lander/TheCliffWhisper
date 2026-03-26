@@ -427,6 +427,15 @@ export class MainScene extends CustomScene {
       return;
     }
 
+    // Stagnation check: defeat if no human jumped for too long during Daytime
+    if (this.gameManager.getPhase() === GamePhase.Daytime) {
+      this.populationManager.updateStagnation(delta);
+      if (this.populationManager.isStagnant()) {
+        this.endRun('defeat');
+        return;
+      }
+    }
+
     // Auto-clicker spawns during Daytime
     if (this.gameManager.getPhase() === GamePhase.Daytime && !this.populationManager.isExtinct()) {
       const autoCount = this.constellationManager.bonuses.autoClickerCount;

@@ -11,11 +11,14 @@ export interface PlacedDecor {
 
 const MAX_ELEVATION = 3;
 
+/** Max number of each decoration type that can be placed. */
+const MAX_PER_TYPE = 4;
+
 export class DecorManager {
   placed: PlacedDecor[] = [];
   totalSlots: number;
   /** Track occupation per slot: elevation level occupied (0=ground, 1=first hill, etc.) */
-  private occupied: Map<number, number> = new Map(); // slot → max elevation placed
+  private occupied: Map<number, number> = new Map();
 
   /** Callback fired when a new decor appears (for rendering + notification) */
   private onDecorPlaced: (placed: PlacedDecor) => void = () => {};
@@ -51,6 +54,11 @@ export class DecorManager {
     return true;
   }
 
+  /** Count how many of a given decoration type are already placed. */
+  private countType(id: string): number {
+    return this.placed.filter((p) => p.def.id === id).length;
+  }
+
   update(delta: number) {
     if (!this.active) return;
     if (this.isFull()) return;
@@ -63,9 +71,9 @@ export class DecorManager {
   }
 
   private scheduleNext() {
-    // Interval decreases with day count: starts ~15s, down to ~5s by day 5+
-    const baseInterval = Math.max(5000, 18000 - this.dayCount * 2500);
-    const variation = baseInterval * 0.4;
+    // Slower scaling: starts ~25s, minimum ~10s, reaches min around day 10
+    const baseInterval = Math.max(10_000, 25_000 - this.dayCount * 1500);
+    const variation = baseInterval * 0.3;
     this.nextSpawnTimer = baseInterval + (Math.random() - 0.5) * variation * 2;
   }
 
@@ -81,7 +89,11 @@ export class DecorManager {
 
     if (available.length === 0) return;
 
-    const def = DECOR_CATALOG[Math.floor(Math.random() * DECOR_CATALOG.length)];
+    // Pick a decoration type that hasn't reached its cap
+    const eligible = DECOR_CATALOG.filter((d) => this.countType(d.id) < MAX_PER_TYPE);
+    if (eligible.length === 0) return;
+
+    const def = eligible[Math.floor(Math.random() * eligible.length)];
 
     // Prefer ground level (elevation 0) first, then stack with 30% chance
     const groundSlots = available.filter((a) => a.elevation === 0);

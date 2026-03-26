@@ -1,18 +1,22 @@
 import { GameManager, GamePhase } from './GameManager';
 
+export const TURN_BACK_MIN = 0.05;
+export const TURN_BACK_MAX = 0.80;
+export const STAGNATION_LIMIT_MS = 20_000;
+
 export interface PopulationStats {
-  walkSpeed: number; // pixels per second (base: 150)
-  turnBackRate: number; // 0-1 probability (base: 0.35)
-  dragRate: number; // 0-1 chance a turning-back human causes another to turn back when crossing (base: 0.1)
-  birthRate: number; // integer — humans added per day at sunset (base: 15)
+  walkSpeed: number; // pixels per second (base: 120)
+  turnBackRate: number; // 0-1 probability (base: 0.30)
+  dragRate: number; // 0-1 chance a turning-back human causes another to turn back when crossing (base: 0.05)
+  birthRate: number; // integer — humans added per day at sunset (base: 10)
   birthratePerSec: number; // integer — humans spawned per second during day (base: 0)
   clickCooldown: number; // ms between clicks, shared player + auto-clickers (base: 1000)
 }
 
 const BASE_STATS: PopulationStats = {
-  walkSpeed: 150,
-  turnBackRate: 0.35,
-  dragRate: 0.1,
+  walkSpeed: 120,
+  turnBackRate: 0.30,
+  dragRate: 0.05,
   birthRate: 15,
   birthratePerSec: 0,
   clickCooldown: 1000,
@@ -28,6 +32,9 @@ export class PopulationManager {
 
   private gameManager: GameManager;
   private birthAppliedThisDay: boolean = false;
+
+  /** Time since last human jumped (ms), tracked during Daytime only. */
+  stagnationTimer: number = 0;
 
   constructor(gameManager: GameManager) {
     this.gameManager = gameManager;
@@ -45,6 +52,7 @@ export class PopulationManager {
   private onDayStart() {
     this.birthAppliedThisDay = false;
     this.born = 0;
+    this.stagnationTimer = 0;
   }
 
   private onSunset() {
@@ -62,37 +70,48 @@ export class PopulationManager {
   onHumanJumped() {
     this.population = Math.max(0, this.population - 1);
     this.jumped++;
+    this.stagnationTimer = 0;
   }
 
   onHumanTurnedBack() {
     this.turnedBack++;
   }
 
-  /** When a human turns back and crosses another, chance the other turns back too */
-  shouldDragTurnBack(): boolean {
-    return Math.random() < this.stats.dragRate;
+  /** Clamp turn-back rate to safe bounds. Call before reading the rate. */
+  getEffectiveTurnBackRate(): number {
+    return Math.max(TURN_BACK_MIN, Math.min(TURN_BACK_MAX, this.stats.turnBackRate));
   }
 
   shouldTurnBack(): boolean {
-    return Math.random() < this.stats.turnBackRate;
+    return Math.random() < this.getEffectiveTurnBackRate();
+  }
+
+  shouldDragTurnBack(): boolean {
+    return Math.random() < this.stats.dragRate;
   }
 
   isExtinct(): boolean {
     return this.population <= 0;
   }
 
+  /** Returns true if no human has jumped for too long during Daytime. */
+  isStagnant(): boolean {
+    return this.stagnationTimer >= STAGNATION_LIMIT_MS;
+  }
+
+  /** Call every frame during Daytime to track stagnation. */
+  updateStagnation(delta: number) {
+    this.stagnationTimer += delta;
+  }
+
   getCurrentBirthRate(): number {
     return this.stats.birthRate;
   }
 
-  /**
-   * Max humans that can jump per day based on auto-clicker throughput.
-   * Each auto-clicker fires once per cooldown cycle.
-   */
   getMaxKillsPerDay(dayDurationMs: number, autoClickerCount: number): number {
     if (autoClickerCount === 0) return 0;
     const clicksPerDay = Math.floor(dayDurationMs / this.stats.clickCooldown) * autoClickerCount;
-    const effectiveKills = clicksPerDay * (1 - this.stats.turnBackRate);
+    const effectiveKills = clicksPerDay * (1 - this.getEffectiveTurnBackRate());
     return Math.floor(effectiveKills);
   }
 
@@ -102,7 +121,6 @@ export class PopulationManager {
     return totalBirthPerDay >= this.getMaxKillsPerDay(dayDurationMs, autoClickerCount);
   }
 
-  /** Snapshot of daily stats for the night summary */
   getDaySummary(): { jumped: number; turnedBack: number; born: number } {
     return {
       jumped: this.jumped,
