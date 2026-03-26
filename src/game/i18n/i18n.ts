@@ -8,7 +8,9 @@ export function setLanguage(lang: Language) {
   currentLang = lang;
   try {
     localStorage.setItem(STORAGE_KEY, lang);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getLanguage(): Language {
@@ -21,7 +23,9 @@ export function initLanguage() {
     if (saved === 'fr' || saved === 'en') {
       currentLang = saved;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export function t(key: string): string {
@@ -33,7 +37,6 @@ export function t(key: string): string {
 const EN: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisperer',
-  'menu.subtitle': 'Lead them to the edge.',
   'menu.newGame': '[ New Game ]',
   'menu.continue': '[ Continue ]',
   'menu.quit': '[ Quit ]',
@@ -57,6 +60,16 @@ const EN: Record<string, string> = {
   'hud.souls': 'Souls',
   'hud.jumped': 'Jumped',
   'hud.turnedBack': 'Turned back',
+
+  // Stats panel (bottom-left)
+  'stats.walkSpeed': 'Walk Speed',
+  'stats.turnBackRate': 'Turn Back',
+  'stats.dragRate': 'Drag Chance',
+  'stats.clickCooldown': 'Click Delay',
+  'stats.autoClickers': 'Auto Clickers',
+  'stats.soulMult': 'Soul Bonus',
+  'stats.birthRate': 'Birth Rate',
+  'stats.birthPerSec': 'Births Per Sec',
 
   // Game phases
   'phase.Night': 'Night',
@@ -348,7 +361,6 @@ const EN: Record<string, string> = {
 const FR: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisperer',
-  'menu.subtitle': "Conduis-les vers le bord.",
   'menu.newGame': '[ Nouvelle Partie ]',
   'menu.continue': '[ Continuer ]',
   'menu.quit': '[ Quitter ]',
@@ -373,6 +385,16 @@ const FR: Record<string, string> = {
   'hud.jumped': 'Sautes',
   'hud.turnedBack': 'Demi-tours',
 
+  // Stats panel (bottom-left)
+  'stats.walkSpeed': 'Vitesse Marche',
+  'stats.turnBackRate': 'Taux Demi-tour',
+  'stats.dragRate': 'Entrainement',
+  'stats.clickCooldown': 'Delai Clic',
+  'stats.autoClickers': 'Auto Cliqueurs',
+  'stats.soulMult': 'Bonus Ames',
+  'stats.birthRate': 'Taux Natalite',
+  'stats.birthPerSec': 'Naissances Par Sec',
+
   // Game phases
   'phase.Night': 'Nuit',
   'phase.Daytime': 'Jour',
@@ -385,26 +407,26 @@ const FR: Record<string, string> = {
   'end.victory': 'Silence.',
   'end.defeat': 'Ils endurent.',
   'end.victoryStats': 'Extinction atteinte en {days} jours.',
-  'end.defeatStats': "Population : {pop}\nLe taux de natalite ne pouvait plus etre surmonte.",
+  'end.defeatStats': 'Population : {pop}\nLe taux de natalite ne pouvait plus etre surmonte.',
   'end.restart': 'Cliquez pour reessayer',
 
   // Skill tree
   'tree.endNight': '[ Fin de la Nuit ]',
   'tree.unlocked': 'Debloque',
-  'tree.cost': "Cout : {cost} ames",
+  'tree.cost': 'Cout : {cost} ames',
   'tree.unlock': 'Debloquer',
 
   // Abilities
   'ability.frenzy_pulse.name': 'Pulsion Frenetique',
   'ability.frenzy_pulse.desc': 'Multiplie la vitesse de marche',
   'ability.void_call.name': 'Appel du Vide',
-  'ability.void_call.desc': "Reduit le taux de demi-tour a 0",
+  'ability.void_call.desc': 'Reduit le taux de demi-tour a 0',
   'ability.dark_wave.name': 'Vague Sombre',
   'ability.dark_wave.desc': "Fait apparaitre une vague d'humains",
   'ability.soul_harvest.name': "Recolte d'Ames",
   'ability.soul_harvest.desc': "Multiplie le gain d'ames",
   'ability.silence.name': 'Silence',
-  'ability.silence.desc': "Reduit le taux de natalite a 0",
+  'ability.silence.desc': 'Reduit le taux de natalite a 0',
 
   // Ability stats
   'ability.stat.speed': 'x{mult} vitesse  {dur}s',
@@ -432,7 +454,7 @@ const FR: Record<string, string> = {
   'node.ve_6.name': 'Maree Dechainee',
   'node.ve_6.desc': 'Le flot devient torrent.',
   'node.ve_7.name': 'Foulees Sans Fin',
-  'node.ve_7.desc': "Ni pause, ni hesitation.",
+  'node.ve_7.desc': 'Ni pause, ni hesitation.',
   'node.ve_8.name': 'Vitesse Aveuglante',
   'node.ve_8.desc': 'Les yeux se brouillent, les pieds volent.',
   'node.ve_9.name': 'Marcheur du Vent',
@@ -452,7 +474,7 @@ const FR: Record<string, string> = {
   'node.ve_fb2.name': 'Sprint Hurlant',
   'node.ve_fb2.desc': 'La terreur les propulse.',
   'node.ve_fb3.name': 'La Stampede Infinie',
-  'node.ve_fb3.desc': "Une riviere de corps, coulant a jamais.",
+  'node.ve_fb3.desc': 'Une riviere de corps, coulant a jamais.',
   'node.ve_ab1.name': 'Pulsion Frenetique',
   'node.ve_ab1.desc': 'Debloque : Pulsion Frenetique.',
   'node.ve_ab2.name': 'Frenesie Prolongee',
@@ -476,13 +498,13 @@ const FR: Record<string, string> = {
   'node.de_4.name': 'Foi Vacillante',
   'node.de_4.desc': "L'espoir s'amenuise.",
   'node.de_5.name': 'Espoir Mourant',
-  'node.de_5.desc': "La lumiere faiblit.",
+  'node.de_5.desc': 'La lumiere faiblit.',
   'node.de_6.name': 'Conviction',
   'node.de_6.desc': 'Ils croient en la chute.',
   'node.de_7.name': 'Devotion Aveugle',
   'node.de_7.desc': 'La foi remplace la vue.',
   'node.de_8.name': 'Sans Retour',
-  'node.de_8.desc': "Le chemin du retour est oublie.",
+  'node.de_8.desc': 'Le chemin du retour est oublie.',
   'node.de_9.name': "L'Abime Appelle",
   'node.de_9.desc': 'Une attraction irresistible.',
   'node.de_10.name': 'Foi Absolue',
@@ -502,7 +524,7 @@ const FR: Record<string, string> = {
   'node.de_fb3.name': 'Obeissance Absolue',
   'node.de_fb3.desc': 'La volonte est effacee.',
   'node.de_ab1.name': 'Appel du Vide',
-  'node.de_ab1.desc': "Debloque : Appel du Vide.",
+  'node.de_ab1.desc': 'Debloque : Appel du Vide.',
   'node.de_ab2.name': 'Silence Prolonge',
   'node.de_ab2.desc': "L'Appel dure plus longtemps.",
   'node.de_ab3.name': 'Appel Accelere',
@@ -522,9 +544,9 @@ const FR: Record<string, string> = {
   'node.co_3.name': 'Instinct Gregaire',
   'node.co_3.desc': 'Suivre la foule.',
   'node.co_4.name': 'Anxiete de Masse',
-  'node.co_4.desc': "La peur se repand comme une trainee de poudre.",
+  'node.co_4.desc': 'La peur se repand comme une trainee de poudre.',
   'node.co_5.name': 'Propagation de Panique',
-  'node.co_5.desc': "Un cri en declenche mille.",
+  'node.co_5.desc': 'Un cri en declenche mille.',
   'node.co_6.name': 'Reaction en Chaine',
   'node.co_6.desc': 'Chaque chute en engendre une autre.',
   'node.co_7.name': 'Mentalite de Meute',
@@ -575,7 +597,7 @@ const FR: Record<string, string> = {
   'node.ma_5.desc': "La machine ne s'arrete jamais.",
   'node.ma_6.name': 'Automate',
   'node.ma_6.desc': '+1 auto-cliqueur.',
-  'node.ma_7.name': "Chaine de Montage",
+  'node.ma_7.name': 'Chaine de Montage',
   'node.ma_7.desc': '+1 auto-cliqueur.',
   'node.ma_8.name': "Atelier d'Usine",
   'node.ma_8.desc': '+1 auto-cliqueur.',
@@ -600,7 +622,7 @@ const FR: Record<string, string> = {
   'node.ma_ab1.name': "Recolte d'Ames",
   'node.ma_ab1.desc': "Debloque : Recolte d'Ames.",
   'node.ma_ab2.name': 'Moisson Abondante',
-  'node.ma_ab2.desc': "La Recolte dure plus longtemps.",
+  'node.ma_ab2.desc': 'La Recolte dure plus longtemps.',
   'node.ma_ab3.name': 'Recolte Efficace',
   'node.ma_ab3.desc': 'Recharge de Recolte reduite.',
   'node.ma_ab4.name': 'Grande Recolte',
@@ -630,7 +652,7 @@ const FR: Record<string, string> = {
   'node.ge_9.name': 'Ventre Creux',
   'node.ge_9.desc': 'La creation vacille.',
   'node.ge_10.name': "Graine d'Extinction",
-  'node.ge_10.desc': "La fin commence a la naissance.",
+  'node.ge_10.desc': 'La fin commence a la naissance.',
   'node.ge_fa1.name': "Echo d'Ame",
   'node.ge_fa1.desc': "Les ames flottent dans l'air.",
   'node.ge_fa2.name': 'Champ de Resonance',

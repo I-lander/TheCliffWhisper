@@ -14,11 +14,12 @@ export class UIScene extends CustomScene {
   private timerText!: Phaser.GameObjects.Text;
   private dayText!: Phaser.GameObjects.Text;
 
-  // Bottom-left: all stats
+  // Bottom-left: main stats
   private popText!: Phaser.GameObjects.Text;
-  private birthRateText!: Phaser.GameObjects.Text;
-  private dailyStatsText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
+
+  // Bottom-left: detailed stats panel
+  private statsText!: Phaser.GameObjects.Text;
 
   constructor() {
     super('UIScene');
@@ -64,29 +65,9 @@ export class UIScene extends CustomScene {
     const bottomY = this.cameras.main.height - padding;
     const lineHeight = smallFontSize * 1.4;
 
-    // Row 1 (bottom): daily stats (jumped / turned back)
-    this.dailyStatsText = this.add
-      .text(padding, bottomY, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#aaaaaa',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0, 1)
-      .setAlpha(0.6);
-
-    // Row 2: birth rate
-    this.birthRateText = this.add
-      .text(padding, bottomY - lineHeight, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#ff6666',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0, 1)
-      .setAlpha(0.7);
-
-    // Row 3: population
+    // Row 1 (bottom): population
     this.popText = this.add
-      .text(padding, bottomY - lineHeight * 2, '', {
+      .text(padding, bottomY, '', {
         fontSize: `${smallFontSize}px`,
         color: '#ffffff',
         fontFamily: 'PixelSleigh',
@@ -94,15 +75,25 @@ export class UIScene extends CustomScene {
       .setOrigin(0, 1)
       .setAlpha(0.9);
 
-    // Row 4: souls
+    // Row 2: souls
     this.soulsText = this.add
-      .text(padding, bottomY - lineHeight * 3, '', {
+      .text(padding, bottomY - lineHeight, '', {
         fontSize: `${smallFontSize}px`,
         color: '#aaccff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0, 1)
       .setAlpha(0.8);
+
+    // Bottom-left: detailed stats panel (above the main stats)
+    this.statsText = this.add
+      .text(padding, bottomY - lineHeight * 2.5, '', {
+        fontSize: `${smallFontSize}px`,
+        color: '#666688',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0, 1)
+      .setAlpha(0.6);
 
     // Top-right: menu button
     const screenWidth = this.cameras.main.width;
@@ -142,18 +133,25 @@ export class UIScene extends CustomScene {
     this.timerText.setText('');
 
     const pop = this.populationManager.population;
-    const birthRate = this.populationManager.getCurrentBirthRate();
-    const dayDuration = this.gameManager.getDaytimeDuration();
-    const autoCount = this.mainScene.constellationManager.bonuses.autoClickerCount;
-    const maxKills = this.populationManager.getMaxKillsPerDay(dayDuration, autoCount);
 
     this.popText.setText(`${t('hud.population')}: ${pop.toLocaleString()}`);
-    this.birthRateText.setText(`+${birthRate}/${t('hud.day').toLowerCase()}`);
-
-    const { jumped, turnedBack } = this.populationManager;
-    this.dailyStatsText.setText(`${t('hud.jumped')}: ${jumped}  ${t('hud.turnedBack')}: ${turnedBack}`);
 
     const souls = this.mainScene.constellationManager.souls;
     this.soulsText.setText(`${t('hud.souls')}: ${souls}`);
+
+    // Bottom-left: detailed stats
+    const s = this.populationManager.stats;
+    const bonuses = this.mainScene.constellationManager.bonuses;
+    const lines = [
+      `${t('stats.walkSpeed')}: ${s.walkSpeed}`,
+      `${t('stats.turnBackRate')}: ${Math.round(s.turnBackRate * 100)}%`,
+      `${t('stats.dragRate')}: ${Math.round(s.dragRate * 100)}%`,
+      `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(1)}s`,
+      `${t('stats.autoClickers')}: ${bonuses.autoClickerCount}`,
+      `${t('stats.soulMult')}: x${bonuses.soulMultiplier}`,
+      `${t('stats.birthRate')}: +${s.birthRate}/${t('hud.day').toLowerCase()}`,
+      `${t('stats.birthPerSec')}: ${s.birthratePerSec}`,
+    ];
+    this.statsText.setText(lines.join('\n'));
   }
 }

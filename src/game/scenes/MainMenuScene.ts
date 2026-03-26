@@ -33,29 +33,22 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setAlpha(0.9);
 
-    // Subtitle
-    this.add
-      .text(cx, cy - tileSize * 2.5, t('menu.subtitle'), {
-        fontSize: `${Math.round(tileSize * 0.45)}px`,
-        color: '#666688',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5);
+   
 
-    // Language toggle button (top-right)
+    // Language toggle button (top-right) — shows the current language flag
+    const currentLang = getLanguage();
+    const flagScale = (tileSize * 1.2) / this.textures.get(`flag_${currentLang}`).getSourceImage().width;
     const langBtn = this.add
-      .text(this.cameras.main.width - tileSize * 0.5, tileSize * 0.5, t('menu.language'), {
-        fontSize: `${Math.round(tileSize * 0.5)}px`,
-        color: '#666688',
-        fontFamily: 'PixelSleigh',
-      })
+      .image(this.cameras.main.width - tileSize * 0.5, tileSize * 0.5, `flag_${currentLang}`)
       .setOrigin(1, 0)
+      .setScale(flagScale)
+      .setAlpha(0.7)
       .setInteractive({ useHandCursor: true });
 
-    langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setColor('#aaccff'));
-    langBtn.on(Phaser.Input.Events.POINTER_OUT, () => langBtn.setColor('#666688'));
+    langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setAlpha(1));
+    langBtn.on(Phaser.Input.Events.POINTER_OUT, () => langBtn.setAlpha(0.7));
     langBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      setLanguage(getLanguage() === 'en' ? 'fr' : 'en');
+      setLanguage(currentLang === 'en' ? 'fr' : 'en');
       this.scene.restart();
     });
 
