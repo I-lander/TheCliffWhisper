@@ -8,6 +8,7 @@ interface AbilityButton {
   label: Phaser.GameObjects.Text;
   cdOverlay: Phaser.GameObjects.Graphics;
   cdText: Phaser.GameObjects.Text;
+  durationBar: Phaser.GameObjects.Graphics;
   hitZone: Phaser.GameObjects.Rectangle;
   x: number;
   y: number;
@@ -19,6 +20,7 @@ export class AbilityUI {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private cooldowns: Map<string, number> = new Map();
+  private durations: Map<string, { remaining: number; total: number }> = new Map();
   private buttons: Map<string, AbilityButton> = new Map();
   private getBonuses: () => ConstellationBonuses;
   private onActivate: (id: string) => void;
@@ -130,6 +132,9 @@ export class AbilityUI {
       fontFamily: 'PixelSleigh',
     }).setOrigin(0.5).setVisible(false);
 
+    // Duration progress bar (below the button)
+    const durationBar = this.scene.add.graphics();
+
     // Hit zone
     const hitZone = this.scene.add.rectangle(x + w / 2, y + h / 2, w, h)
       .setInteractive({ useHandCursor: true })
@@ -144,7 +149,11 @@ export class AbilityUI {
     hitZone.on(Phaser.Input.Events.POINTER_UP, () => {
       if (this.pressedAbilityId === def.id) {
         if ((this.cooldowns.get(def.id) ?? 0) <= 0) {
+          const duration = this.getAbilityDuration(def.id);
           this.cooldowns.set(def.id, this.getAbilityCooldown(def.id));
+          if (duration > 0) {
+            this.durations.set(def.id, { remaining: duration, total: duration });
+          }
           this.onActivate(def.id);
         }
         this.pressedAbilityId = null;
@@ -154,17 +163,15 @@ export class AbilityUI {
 
     hitZone.on(Phaser.Input.Events.POINTER_OVER, () => {
       if ((this.cooldowns.get(def.id) ?? 0) <= 0) label.setColor('#ffffff');
+      this.showTooltip(def, x, y, w);
     });
     hitZone.on(Phaser.Input.Events.POINTER_OUT, () => {
       label.setColor('#aaccff');
-      if (this.pressedAbilityId === def.id) {
-        this.pressedAbilityId = null;
-        this.hideTooltip();
-      }
+      this.hideTooltip();
     });
 
-    this.container.add([bg, label, cdOverlay, cdText, hitZone]);
-    this.buttons.set(def.id, { bg, label, cdOverlay, cdText, hitZone, x, y, w, h });
+    this.container.add([bg, label, cdOverlay, cdText, durationBar, hitZone]);
+    this.buttons.set(def.id, { bg, label, cdOverlay, cdText, durationBar, hitZone, x, y, w, h });
   }
 
   private showTooltip(def: AbilityDef, btnX: number, btnY: number, btnW: number) {
@@ -228,7 +235,23 @@ export class AbilityUI {
     }
   }
 
+  private getAbilityDuration(id: string): number {
+    const b = this.getBonuses();
+    switch (id) {
+      case 'frenzy_pulse': return b.frenzyPulse.duration;
+      case 'void_call': return b.voidCall.duration;
+      case 'soul_harvest': return b.soulHarvest.duration;
+      case 'silence': return b.silence.duration;
+      default: return 0; // dark_wave is instant
+    }
+  }
+
   update(delta: number) {
+    const tileSize = this.scene.cameras.main.height / 18;
+    const barH = Math.round(tileSize * 0.12);
+    const barGap = Math.round(tileSize * 0.08);
+
+    // Update cooldowns
     for (const [id, remaining] of this.cooldowns) {
       if (remaining <= 0) continue;
       const newVal = Math.max(0, remaining - delta);
@@ -241,14 +264,38 @@ export class AbilityUI {
         const totalCd = this.getAbilityCooldown(id);
         const progress = newVal / totalCd;
         btn.label.setAlpha(0.3);
-        btn.cdText.setVisible(true);
-        btn.cdText.setText(`${(newVal / 1000).toFixed(2)}s`);
-        btn.bg.setAlpha(0.3 + 0.7 * (1 - progress));
+        btn.cdText.setVisible(false);
+
+        // Overlay shrinks horizontally from right to left
+        btn.cdOverlay.clear();
+        btn.cdOverlay.fillStyle(0x000000, 0.6);
+        const overlayW = btn.w * progress;
+        btn.cdOverlay.fillRect(btn.x + btn.w - overlayW, btn.y, overlayW, btn.h);
       } else {
         btn.label.setAlpha(1);
         btn.cdText.setVisible(false);
-        btn.bg.setAlpha(1);
         btn.cdOverlay.clear();
+      }
+    }
+
+    // Update duration bars
+    for (const [id, dur] of this.durations) {
+      if (dur.remaining <= 0) continue;
+      dur.remaining = Math.max(0, dur.remaining - delta);
+
+      const btn = this.buttons.get(id);
+      if (!btn) continue;
+
+      btn.durationBar.clear();
+      if (dur.remaining > 0) {
+        const progress = dur.remaining / dur.total;
+        const barY = btn.y + btn.h + barGap;
+        // Background
+        btn.durationBar.fillStyle(0x000000, 0.5);
+        btn.durationBar.fillRect(btn.x, barY, btn.w, barH);
+        // Fill
+        btn.durationBar.fillStyle(0xaaccff, 0.8);
+        btn.durationBar.fillRect(btn.x, barY, btn.w * progress, barH);
       }
     }
   }

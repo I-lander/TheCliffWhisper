@@ -423,6 +423,7 @@ export class MainScene extends CustomScene {
     // Load saved state if requested
     if (this.loadSave) {
       this.applySaveData();
+      this.autoSave();
     }
   }
 
