@@ -337,7 +337,7 @@ export class MainScene extends CustomScene {
 
     // Cooldown bar (bottom-center, hidden by default)
     const barWidth = this.tileSize * 4;
-    const barHeight = this.tileSize * 0.3;
+    const barHeight = this.pixelUnit;
     const barX = this.canvasWidth / 2 - barWidth / 2;
     const barY = this.canvasHeight - this.tileSize * 1.5;
     this.cooldownBarBg = this.add
@@ -534,7 +534,9 @@ export class MainScene extends CustomScene {
 
     // Stagnation check: defeat if no human jumped for too long during Daytime
     if (this.gameManager.getPhase() === GamePhase.Daytime) {
-      this.populationManager.updateStagnation(delta);
+      if (this.firstHumanSpawned) {
+        this.populationManager.updateStagnation(delta);
+      }
       if (this.populationManager.isStagnant()) {
         this.endRun('defeat');
         return;
@@ -603,7 +605,7 @@ export class MainScene extends CustomScene {
     const isFirst = !this.firstHumanSpawned;
     if (isFirst) this.firstHumanSpawned = true;
     const shouldTurnBack = forceJump || isFirst ? false : this.populationManager.shouldTurnBack();
-    
+
     const human = new Human(
       this,
       overrideX ?? this.spawnX,

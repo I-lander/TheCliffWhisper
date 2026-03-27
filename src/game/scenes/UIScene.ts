@@ -28,8 +28,10 @@ export class UIScene extends CustomScene {
   private popText!: Phaser.GameObjects.Text;
   private soulsText!: Phaser.GameObjects.Text;
 
-  // Bottom-left: detailed stats panel
-  private statsText!: Phaser.GameObjects.Text;
+  // Bottom-left: detailed stats panel (individual lines for tooltips)
+  private statLines: { text: Phaser.GameObjects.Text; tipKey: string }[] = [];
+  private tooltip!: Phaser.GameObjects.Text;
+  private tooltipBg!: Phaser.GameObjects.Rectangle;
 
   // Tutorial
   private tutoStep1!: Phaser.GameObjects.Text;
@@ -65,7 +67,7 @@ export class UIScene extends CustomScene {
     // Stagnation bar (top-center, below the End Day button)
     const screenWidth = this.cameras.main.width;
     const barW = this.tileSize * 6;
-    const barH = this.tileSize * 0.25;
+    const barH = this.pixelUnit;
     const barX = screenWidth / 2 - barW / 2;
     const barY = this.tileSize * 1.8;
     this.stagnationBarMaxW = barW;
@@ -104,15 +106,58 @@ export class UIScene extends CustomScene {
       .setOrigin(0, 1)
       .setAlpha(0.8);
 
-    // Bottom-left: detailed stats panel (above the main stats)
-    this.statsText = this.add
-      .text(padding, bottomY - lineHeight * 2.5, '', {
-        fontSize: `${smallFontSize}px`,
-        color: '#666688',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0, 1)
-      .setAlpha(0.6);
+    // Bottom-left: detailed stats panel (individual lines with tooltips)
+    const statDefs: { tipKey: string }[] = [
+      { tipKey: 'tip.birthPerSec' },
+      { tipKey: 'tip.birthRate' },
+      { tipKey: 'tip.deathMult' },
+      { tipKey: 'tip.soulMult' },
+      { tipKey: 'tip.autoClickers' },
+      { tipKey: 'tip.clickCooldown' },
+      { tipKey: 'tip.dragRate' },
+      { tipKey: 'tip.turnBackRate' },
+      { tipKey: 'tip.walkSpeed' },
+    ];
+    const statsBaseY = bottomY - lineHeight * 2.5;
+    this.statLines = [];
+    for (let i = 0; i < statDefs.length; i++) {
+      const y = statsBaseY - i * lineHeight;
+      const txt = this.add
+        .text(padding, y, '', {
+          fontSize: `${smallFontSize}px`,
+          color: '#666688',
+          fontFamily: 'PixelSleigh',
+        })
+        .setOrigin(0, 1)
+        .setAlpha(0.6)
+        .setInteractive({ useHandCursor: true });
+      const tipKey = statDefs[i].tipKey;
+      txt.on(Phaser.Input.Events.POINTER_OVER, () => this.showTooltip(txt, tipKey));
+      txt.on(Phaser.Input.Events.POINTER_OUT, () => this.hideTooltip());
+      txt.on(Phaser.Input.Events.POINTER_DOWN, () => this.showTooltip(txt, tipKey));
+      this.statLines.push({ text: txt, tipKey });
+    }
+
+    // Also add tooltips to popText and soulsText
+    this.popText.setInteractive({ useHandCursor: true });
+    this.popText.on(Phaser.Input.Events.POINTER_OVER, () => this.showTooltip(this.popText, 'tip.population'));
+    this.popText.on(Phaser.Input.Events.POINTER_OUT, () => this.hideTooltip());
+    this.popText.on(Phaser.Input.Events.POINTER_DOWN, () => this.showTooltip(this.popText, 'tip.population'));
+
+    this.soulsText.setInteractive({ useHandCursor: true });
+    this.soulsText.on(Phaser.Input.Events.POINTER_OVER, () => this.showTooltip(this.soulsText, 'tip.souls'));
+    this.soulsText.on(Phaser.Input.Events.POINTER_OUT, () => this.hideTooltip());
+    this.soulsText.on(Phaser.Input.Events.POINTER_DOWN, () => this.showTooltip(this.soulsText, 'tip.souls'));
+
+    // Tooltip (hidden by default)
+    const tipFontSize = Math.round(this.tileSize * 0.38);
+    this.tooltipBg = this.add.rectangle(0, 0, 100, tipFontSize * 1.6, 0x000000, 0.75)
+      .setOrigin(0, 1).setVisible(false).setDepth(300);
+    this.tooltip = this.add.text(0, 0, '', {
+      fontSize: `${tipFontSize}px`,
+      color: '#ffffff',
+      fontFamily: 'PixelSleigh',
+    }).setOrigin(0, 1).setVisible(false).setDepth(301);
 
     // Tutorial hints (only on first ever game)
     const showTuto = !isTutoDone();
@@ -226,21 +271,41 @@ export class UIScene extends CustomScene {
     const souls = this.mainScene.constellationManager.souls;
     this.soulsText.setText(`${t('hud.souls')}: ${formatBigNumber(souls)}`);
 
-    // Bottom-left: detailed stats
+    // Bottom-left: detailed stats (individual lines, order matches statDefs bottom-to-top)
     const s = this.populationManager.stats;
     const bonuses = this.mainScene.constellationManager.bonuses;
     const f = (v: number) => v % 1 === 0 ? String(v) : v.toFixed(2);
-    const lines = [
-      `${t('stats.walkSpeed')}: ${f(s.walkSpeed)}`,
-      `${t('stats.turnBackRate')}: ${(this.populationManager.getEffectiveTurnBackRate() * 100).toFixed(2)}%`,
-      `${t('stats.dragRate')}: ${(s.dragRate * 100).toFixed(2)}%`,
-      `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(2)}s`,
-      `${t('stats.autoClickers')}: ${bonuses.autoClickerCount}`,
-      `${t('stats.soulMult')}: x${f(bonuses.soulMultiplier)}`,
-      `${t('stats.deathMult')}: x${formatBigNumber(Math.floor(s.deathMultiplier))}`,
-      `${t('stats.birthRate')}: +${formatBigNumber(s.birthRate)}/${t('hud.day').toLowerCase()}`,
+    const values = [
       `${t('stats.birthPerSec')}: ${f(s.birthratePerSec)}`,
+      `${t('stats.birthRate')}: +${formatBigNumber(s.birthRate)}/${t('hud.day').toLowerCase()}`,
+      `${t('stats.deathMult')}: x${formatBigNumber(Math.floor(s.deathMultiplier))}`,
+      `${t('stats.soulMult')}: x${f(bonuses.soulMultiplier)}`,
+      `${t('stats.autoClickers')}: ${bonuses.autoClickerCount}`,
+      `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(2)}s`,
+      `${t('stats.dragRate')}: ${(s.dragRate * 100).toFixed(2)}%`,
+      `${t('stats.turnBackRate')}: ${(this.populationManager.getEffectiveTurnBackRate() * 100).toFixed(2)}%`,
+      `${t('stats.walkSpeed')}: ${f(s.walkSpeed)}`,
     ];
-    this.statsText.setText(lines.join('\n'));
+    for (let i = 0; i < this.statLines.length; i++) {
+      this.statLines[i].text.setText(values[i] ?? '');
+    }
+  }
+
+  private showTooltip(target: Phaser.GameObjects.Text, tipKey: string) {
+    const tip = t(tipKey);
+    const pad = this.tileSize * 0.3;
+    this.tooltip.setText(tip);
+    const x = target.x + target.width + pad;
+    const y = target.y;
+    this.tooltip.setPosition(x + pad, y).setVisible(true);
+    this.tooltipBg
+      .setPosition(x, y)
+      .setSize(this.tooltip.width + pad * 2, this.tooltip.height + pad)
+      .setVisible(true);
+  }
+
+  private hideTooltip() {
+    this.tooltip.setVisible(false);
+    this.tooltipBg.setVisible(false);
   }
 }

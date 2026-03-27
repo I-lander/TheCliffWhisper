@@ -69,7 +69,7 @@ export class Human extends Phaser.GameObjects.Sprite {
     this.walkTime = Math.random() * Math.PI * 2; // desync between humans
     this.walkAnimSpeed = 14 + (this.walkSpeed / 30); // faster walk = faster anim
     this.baseScaleX = this.scaleX;
-this.setDepth(1000000000);
+this.setDepth(105);
     scene.add.existing(this);
   }
 
@@ -148,6 +148,8 @@ this.setDepth(1000000000);
 
         this.diveVelocityY += this.gravity * dt * drag;
         if (inWater) {
+          this.setAlpha(0.5)
+          this.setDepth(95);
           this.diveVelocityY *= 1 - 3 * dt;
           this.diveVelocityX *= 1 - 2 * dt;
           this.rotationSpeed *= 1 - 2 * dt;

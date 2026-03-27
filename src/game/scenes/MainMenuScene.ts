@@ -87,7 +87,7 @@ export class MainMenuScene extends CustomScene {
     this.cameras.main.setBackgroundColor(0x424f66);
 
     // ── Cliff body + edge (same as MainScene.drawCliffEdge) ──
-    const cliffDepth = 2;
+    const cliffDepth = 10;
     const cliffGfx = this.add.graphics().setDepth(cliffDepth);
     cliffGfx.fillStyle(0x222222);
     cliffGfx.fillRect(

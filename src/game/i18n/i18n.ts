@@ -82,6 +82,19 @@ const EN: Record<string, string> = {
   'stats.birthRate': 'Birth Rate',
   'stats.birthPerSec': 'Births Per Sec',
 
+  // Stats tooltips
+  'tip.walkSpeed': 'How fast humans walk toward the cliff edge.',
+  'tip.turnBackRate': 'Chance a human turns back before jumping.',
+  'tip.dragRate': 'Chance a returning human convinces another to turn back.',
+  'tip.clickCooldown': 'Minimum time between two clicks (yours + auto).',
+  'tip.autoClickers': 'Spirits that automatically push humans off the cliff.',
+  'tip.soulMult': 'Multiplier applied to souls gained per death.',
+  'tip.deathMult': 'Number of humans killed per jump.',
+  'tip.birthRate': 'Humans added to the population at sunset.',
+  'tip.birthPerSec': 'Humans spawning every second during the day.',
+  'tip.population': 'Total humans alive. Reach 0 to win.',
+  'tip.souls': 'Currency earned from deaths. Spent in the skill tree.',
+
   // Game phases
   'phase.Night': 'Night',
   'phase.Daytime': 'Daytime',
@@ -416,6 +429,19 @@ const FR: Record<string, string> = {
   'stats.deathMult': 'Mult Mort',
   'stats.birthRate': 'Taux Natalite',
   'stats.birthPerSec': 'Naissances Par Sec',
+
+  // Stats tooltips
+  'tip.walkSpeed': 'Vitesse de marche des humains vers le bord.',
+  'tip.turnBackRate': 'Chance qu\'un humain fasse demi-tour avant de sauter.',
+  'tip.dragRate': 'Chance qu\'un humain qui revient en convainque un autre.',
+  'tip.clickCooldown': 'Temps minimum entre deux clics (joueur + auto).',
+  'tip.autoClickers': 'Esprits qui poussent automatiquement les humains.',
+  'tip.soulMult': 'Multiplicateur d\'ames gagnees par mort.',
+  'tip.deathMult': 'Nombre d\'humains tues par saut.',
+  'tip.birthRate': 'Humains ajoutes a la population au crepuscule.',
+  'tip.birthPerSec': 'Humains qui apparaissent chaque seconde de jour.',
+  'tip.population': 'Humains vivants. Atteignez 0 pour gagner.',
+  'tip.souls': 'Monnaie gagnee par les morts. Depensee dans l\'arbre.',
 
   // Game phases
   'phase.Night': 'Nuit',

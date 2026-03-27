@@ -15,42 +15,63 @@ uniform float canvasSizeY;
 const float SPACING = 16.0;
 const float BASE_AMPLITUDE = 2.4;
 const float SPEED = 0.001;
+const int MAX_WAVES = 40;
+
+float getWaveY(float wi, float worldX) {
+	float baseY = SPACING * (wi + 0.5);
+	float phaseOffset = wi * 2.3;
+	float frequencyA = 0.006 + mod(wi, 3.0) * 0.002;
+	float frequencyB = 0.015 + mod(wi, 5.0) * 0.003;
+	float amplitudeVariation = 0.7 + mod(wi, 4.0) * 0.2;
+	float primary = sin(worldX * frequencyA + elapsedTime * SPEED + phaseOffset);
+	float secondary = sin(worldX * frequencyB - elapsedTime * SPEED * 0.6 + phaseOffset * 0.7) * 0.4;
+	return baseY + (primary + secondary) * BASE_AMPLITUDE * amplitudeVariation;
+}
+
+vec3 bandColor(int band) {
+	float b = float(band);
+	float a = 0.20 + 0.10 * sin(b * 0.9 + 0.5);
+	return vec3(a);
+}
 
 void main() {
 	float canvasX = outTexCoord.x * canvasSizeX;
-	float canvasY = floor(outTexCoord.y * canvasSizeY);
+	float canvasY = floor((1.0 - outTexCoord.y) * canvasSizeY);
 	float worldX = canvasX * pixelToWorld;
 
 	int centerWave = int(canvasY / SPACING);
+	int totalWaves = int(canvasSizeY / SPACING);
 
+	// Check if pixel is on a wave line
 	bool hit = false;
-
 	for (int offset = -1; offset <= 1; offset++) {
 		int waveIndex = centerWave + offset;
-		if (waveIndex >= 0 && waveIndex < int(canvasSizeY / SPACING)) {
-			float wi = float(waveIndex);
-			float baseY = SPACING * (wi + 0.5);
-			float phaseOffset = wi * 2.3;
-
-			float frequencyA = 0.006 + mod(wi, 3.0) * 0.002;
-			float frequencyB = 0.015 + mod(wi, 5.0) * 0.003;
-			float amplitudeVariation = 0.7 + mod(wi, 4.0) * 0.2;
-
-			float primary = sin(worldX * frequencyA + elapsedTime * SPEED + phaseOffset);
-			float secondary = sin(worldX * frequencyB - elapsedTime * SPEED * 0.6 + phaseOffset * 0.7) * 0.4;
-			float waveY = baseY + (primary + secondary) * BASE_AMPLITUDE * amplitudeVariation;
-			float snappedY = floor(waveY + 0.5);
-
+		if (waveIndex >= 1 && waveIndex < totalWaves) {
+			float snappedY = floor(getWaveY(float(waveIndex), worldX) + 0.5);
 			if (abs(canvasY - snappedY) < 0.5) {
 				hit = true;
 			}
 		}
 	}
 
-	if (hit) {
-		gl_FragColor = vec4(34.0 / 255.0, 34.0 / 255.0, 34.0 / 255.0, 1.0);
-	} else {
+	// Find which band this pixel belongs to
+	int band = 0;
+	for (int i = 0; i < MAX_WAVES; i++) {
+		if (i >= totalWaves) break;
+		float wy = getWaveY(float(i), worldX);
+		if (canvasY > wy) {
+			band = i + 1;
+		}
+	}
+
+	if (!hit && band <= 1) {
 		gl_FragColor = vec4(0.0);
+	} else {
+		float maxBands = canvasSizeY / SPACING;
+		float progress = float(band) / maxBands;
+		float alpha = 0.05 + progress * 0.25;
+		if (hit) alpha += 0.2;
+		gl_FragColor = vec4(alpha, alpha, alpha, alpha);
 	}
 }
 `;
