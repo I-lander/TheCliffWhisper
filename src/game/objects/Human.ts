@@ -30,6 +30,8 @@ export class Human extends Phaser.GameObjects.Sprite {
   private flipProgress: number = 0;
   private flipToWalk: boolean = false; // true = reconversion flip (back toward cliff)
   private wasReconverted: boolean = false;
+  public hasTurnedBack: boolean = false;
+  private hasBeenInTurningBack: boolean = false;
   private baseScaleX: number = 0;
   private splashed: boolean = false;
 
@@ -49,7 +51,7 @@ export class Human extends Phaser.GameObjects.Sprite {
   ) {
     super(scene, startX, groundY, 'human');
 
-    const scale = (scene.cameras.main.height / 18) / 16;
+    const scale = scene.cameras.main.height / 18 / 16;
     this.setScale(scale);
     this.setOrigin(0.5, 1);
 
@@ -69,9 +71,9 @@ export class Human extends Phaser.GameObjects.Sprite {
     // Walk animation: bob + sway, speed tied to walk speed
     this.walkBobAmount = 0.8 + Math.random() * 0.7;
     this.walkTime = Math.random() * Math.PI * 2; // desync between humans
-    this.walkAnimSpeed = 14 + (this.walkSpeed / 30); // faster walk = faster anim
+    this.walkAnimSpeed = 14 + this.walkSpeed / 30; // faster walk = faster anim
     this.baseScaleX = this.scaleX;
-this.setDepth(105);
+    this.setDepth(105);
     scene.add.existing(this);
   }
 
@@ -85,7 +87,8 @@ this.setDepth(105);
         this.y = this.groundY + Math.sin(this.walkTime) * this.walkBobAmount;
         this.setRotation(Math.sin(this.walkTime * 0.5) * 0.08);
 
-        if (this.shouldTurnBack && this.x >= this.turnBackX) {
+        if (this.shouldTurnBack && !this.hasTurnedBack && this.x >= this.turnBackX) {
+          this.hasTurnedBack = true;
           this.state = HumanState.FlipTurn;
           this.flipProgress = 0;
           this.setRotation(0);
@@ -118,9 +121,13 @@ this.setDepth(105);
             this.setFlipX(false);
             this.state = HumanState.Walking;
             this.flipToWalk = false;
-          } else {
+          } else if (!this.hasBeenInTurningBack) {
+            this.hasBeenInTurningBack = true;
             this.setFlipX(true);
             this.state = HumanState.TurningBack;
+          } else {
+            this.setFlipX(false);
+            this.state = HumanState.Walking;
           }
         }
         break;
@@ -151,15 +158,17 @@ this.setDepth(105);
         break;
 
       case HumanState.Falling: {
-        const waveY = (this.scene as MainScene).getFirstWaveWorldY(this.x) +  this.scene.cameras.main.height / 18;
+        const waveY =
+          (this.scene as MainScene).getFirstWaveWorldY(this.x) +
+          this.scene.cameras.main.height / 18;
         const inWater = this.y > waveY;
         const drag = inWater ? 0.15 : 1;
 
         this.diveVelocityY += this.gravity * dt * drag;
         if (inWater) {
-          this.setAlpha(0.5)
+          this.setAlpha(0.5);
           this.setDepth(95);
-          this.diveVelocityY *= 1 - 3 * dt;
+          this.diveVelocityY *= 1 - 4 * dt;
           this.diveVelocityX *= 1 - 2 * dt;
           this.rotationSpeed *= 1 - 2 * dt;
           if (!this.splashed) {
@@ -212,8 +221,8 @@ this.setDepth(105);
     this.state = HumanState.Diving;
 
     // Random dive parameters for variation
-    const baseJumpX = 60 + Math.random() * 140;   // horizontal distance: 60-200px
-    const baseJumpY = -150 - Math.random() * 100;  // upward impulse: -150 to -250
+    const baseJumpX = 60 + Math.random() * 140; // horizontal distance: 60-200px
+    const baseJumpY = -150 - Math.random() * 100; // upward impulse: -150 to -250
 
     this.diveVelocityX = baseJumpX;
     this.diveVelocityY = baseJumpY;
@@ -228,6 +237,8 @@ this.setDepth(105);
 
   forceTurnBack() {
     if (this.state !== HumanState.Walking) return;
+    if (this.hasTurnedBack) return;
+    this.hasTurnedBack = true;
     this.state = HumanState.FlipTurn;
     this.flipProgress = 0;
     this.setRotation(0);
@@ -250,10 +261,7 @@ this.setDepth(105);
     this.flipProgress = 0;
     this.flipToWalk = true;
     this.setRotation(0);
-    this.shouldTurnBack = false;
     this.setAlpha(1);
-    // New turn-back point further ahead so they don't immediately turn again
-    this.turnBackX = this.x + (this.cliffEdgeX - this.x) * (0.5 + Math.random() * 0.4);
   }
 
   getProgress(): number {

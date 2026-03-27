@@ -17,7 +17,7 @@ export interface PopulationStats {
 const BASE_STATS: PopulationStats = {
   walkSpeed: 100,
   turnBackRate: 0.25,
-  dragRate: 0.05,
+  dragRate: 0.01,
   birthRate: 15,
   birthratePerSec: 0,
   clickCooldown: 900,
