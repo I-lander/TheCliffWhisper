@@ -450,8 +450,7 @@ export class MainMenuScene extends CustomScene {
       .image(x, this.groundY, 'human')
       .setScale(direction === -1 ? -spriteScale : spriteScale, spriteScale)
       .setOrigin(0.5, 1)
-      .setDepth(60)
-      .setAlpha(0.7);
+      .setDepth(60);
 
     const speed = 30 + Math.random() * 50;
     this.menuHumans.push({
