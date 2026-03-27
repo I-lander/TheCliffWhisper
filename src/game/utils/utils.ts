@@ -151,11 +151,75 @@ export function createUIPanel(
   graphics.fillRect(x + width - corner, y + height - corner, corner, corner);
 }
 
+export interface PanelButton {
+  text: Phaser.GameObjects.Text;
+  bg: Phaser.GameObjects.Graphics;
+}
+
+/**
+ * Create a text button with a createUIPanel border (no background fill).
+ * Returns both objects so they can be managed (visibility, depth, destroy).
+ */
+export function createPanelButton(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  label: string,
+  fontSize: number,
+  options?: {
+    color?: string;
+    depth?: number;
+    padX?: number;
+    padY?: number;
+    panelColor?: number;
+    panelAlpha?: number;
+    scrollFactor?: number;
+  },
+): PanelButton {
+  const opts = {
+    color: '#aaccff',
+    depth: 0,
+    padX: 0,
+    padY: 0,
+    panelColor: 0x4466aa,
+    panelAlpha: 0.5,
+    scrollFactor: 1,
+    ...options,
+  };
+  const tileSize = scene.cameras.main.height / 18;
+  const pu = tileSize / 16;
+  const padX = opts.padX || tileSize * 0.6;
+  const padY = opts.padY || tileSize * 0.25;
+
+  const text = scene.add
+    .text(x, y, label, {
+      fontSize: `${fontSize}px`,
+      color: opts.color,
+      fontFamily: 'PixelSleigh',
+    })
+    .setOrigin(0.5)
+    .setDepth(opts.depth + 1)
+    .setScrollFactor(opts.scrollFactor);
+
+  const bg = scene.add.graphics()
+    .setDepth(opts.depth)
+    .setScrollFactor(opts.scrollFactor);
+  const btnW = text.width + padX * 2;
+  const btnH = text.height + padY * 2;
+  const btnX = x - btnW / 2;
+  const btnY = y - btnH / 2;
+  createUIPanel(bg, btnX, btnY, btnW, btnH, pu, opts.panelColor, opts.panelAlpha);
+
+  text.setInteractive({ useHandCursor: true });
+
+  return { text, bg };
+}
+
 export function initShader(scene: Phaser.Scene) {
   scene.scene.manager.scenes.forEach((s) => {
     const key = s.scene.key;
 
-    if (key !== 'LoadingScene' && key !== 'UIScene') {
+    if (key !== 'LoadingScene') {
       const renderer = s.renderer as Phaser.Renderer.WebGL.WebGLRenderer;
 
       renderer.pipelines.addPostPipeline('CrtShader', CrtShader);

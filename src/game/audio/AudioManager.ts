@@ -67,7 +67,6 @@ export const AUDIO_KEYS = {
   // Human actions
   HUMAN_SPAWN: 'human_spawn',
   HUMAN_JUMP: 'human_jump',
-  HUMAN_FALL: 'human_fall',
   HUMAN_SPLASH: 'human_splash',
   HUMAN_TURNBACK: 'human_turnback',
   SOUL_RISE: 'soul_rise',

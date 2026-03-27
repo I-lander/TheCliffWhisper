@@ -5,10 +5,10 @@ import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 import { CustomScene } from '../customClasses/CustomScene';
+import { createPanelButton } from '../utils/utils';
 
 export class PauseMenuScene extends CustomScene {
   private overlay!: Phaser.GameObjects.Rectangle;
-  private menuItems: Phaser.GameObjects.Text[] = [];
   private saveStatusText!: Phaser.GameObjects.Text;
   private audio!: AudioManager;
 
@@ -21,7 +21,7 @@ export class PauseMenuScene extends CustomScene {
     const w = this.cameras.main.width;
     const h = this.cameras.main.height;
     const tileSize = h / 18;
-    const btnSize = Math.round(tileSize * 0.65);
+    const btnSize = Math.round(tileSize * 0.55);
     const cx = w / 2;
     const cy = h / 2;
 
@@ -59,20 +59,10 @@ export class PauseMenuScene extends CustomScene {
     ];
 
     buttons.forEach((btn, i) => {
-      const text = this.add
-        .text(cx, cy - tileSize * 0.5 + i * tileSize * 1.5, btn.label, {
-          fontSize: `${btnSize}px`,
-          color: '#aaccff',
-          fontFamily: 'PixelSleigh',
-        })
-        .setOrigin(0.5)
-        .setDepth(1)
-        .setInteractive({ useHandCursor: true });
-
-      text.on(Phaser.Input.Events.POINTER_OVER, () => { text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-      text.on(Phaser.Input.Events.POINTER_OUT, () => text.setColor('#aaccff'));
-      text.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); btn.action(); });
-      this.menuItems.push(text);
+      const pb = createPanelButton(this, cx, cy - tileSize * 0.5 + i * tileSize * 1.5, btn.label, btnSize, { depth: 1 });
+      pb.text.on(Phaser.Input.Events.POINTER_OVER, () => { pb.text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+      pb.text.on(Phaser.Input.Events.POINTER_OUT, () => pb.text.setColor('#aaccff'));
+      pb.text.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); btn.action(); });
     });
 
     // ESC to resume

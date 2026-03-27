@@ -24,20 +24,24 @@ export class CustomScene extends Phaser.Scene {
   }
 
   shakeScreen(duration: number = 100, intensity: number = 1) {
-    if (!this.crtShader) {
-      return;
-    }
-
     const pixelUnit = this.pixelUnit ?? 1;
-
     const direction = Math.random() < 0.5 ? -1 : 1;
-    this.crtShader.dynamicOffsetX += pixelUnit * intensity * direction;
-    this.cameras.main.shake(duration / 2, 0.002);
-    this.tweens.add({
-      targets: this.crtShader,
-      dynamicOffsetX: 0,
-      duration: duration,
-      ease: 'Quad.easeOut',
+    const offset = pixelUnit * intensity * direction;
+
+    // Apply to ALL active scenes that have a CRT shader
+    this.scene.manager.scenes.forEach((s) => {
+      const cs = s as CustomScene;
+      if (cs.crtShader && s.scene.isActive()) {
+        cs.crtShader.dynamicOffsetX += offset;
+        cs.tweens.add({
+          targets: cs.crtShader,
+          dynamicOffsetX: 0,
+          duration,
+          ease: 'Quad.easeOut',
+        });
+      }
     });
+
+    this.cameras.main.shake(duration / 2, 0.002);
   }
 }

@@ -17,19 +17,17 @@ export class JuiceEffects {
 
   onJump(x: number, y: number) {
     this.spawnJumpParticles(x, y);
+    this.scene.shakeScreen(80, 1);
   }
 
   onDeath() {
-    this.scene.cameras.main.shake(60, 0.002);
+    this.scene.shakeScreen(60, 1);
   }
 
   spawnSoul(x: number, y: number) {
     const tileSize = this.scene.cameras.main.height / 18;
     const scale = tileSize / 16;
-    const soul = this.scene.add
-      .image(x, y, 'soul')
-      .setScale(scale)
-      .setDepth(50);
+    const soul = this.scene.add.image(x, y, 'soul').setScale(scale).setDepth(50);
 
     // Tadpole-like swim: wiggle rotation while rising
     const duration = 4000 + Math.random() * 1500;
@@ -66,7 +64,7 @@ export class JuiceEffects {
       duration: 300,
       ease: 'Power2',
     });
-    this.scene.cameras.main.shake(100, 0.005);
+    this.scene.shakeScreen(100, 1);
   }
 
   resetDaily() {}

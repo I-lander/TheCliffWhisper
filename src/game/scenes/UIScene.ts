@@ -4,6 +4,7 @@ import { PopulationManager, STAGNATION_LIMIT_MS } from '../PopulationManager';
 import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
 import { AUDIO_KEYS } from '../audio/AudioManager';
+import { createPanelButton } from '../utils/utils';
 
 export class UIScene extends CustomScene {
   mainScene!: MainScene;
@@ -102,19 +103,14 @@ export class UIScene extends CustomScene {
       .setAlpha(0.6);
 
     // Top-right: menu button
-    const menuBtn = this.add
-      .text(screenWidth - padding, padding, t('hud.menu'), {
-        fontSize: `${smallFontSize}px`,
-        color: '#666688',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(1, 0)
-      .setAlpha(0.8)
-      .setInteractive({ useHandCursor: true });
-
-    menuBtn.on(Phaser.Input.Events.POINTER_OVER, () => { menuBtn.setColor('#aaccff'); this.mainScene.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-    menuBtn.on(Phaser.Input.Events.POINTER_OUT, () => menuBtn.setColor('#666688'));
-    menuBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    const menuBtnX = screenWidth - padding - smallFontSize * 4;
+    const menuBtnY = padding + smallFontSize * 0.5;
+    const menu = createPanelButton(this, menuBtnX, menuBtnY, t('hud.menu'), smallFontSize, {
+      color: '#666688',
+    });
+    menu.text.on(Phaser.Input.Events.POINTER_OVER, () => { menu.text.setColor('#aaccff'); this.mainScene.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+    menu.text.on(Phaser.Input.Events.POINTER_OUT, () => menu.text.setColor('#666688'));
+    menu.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.mainScene.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       this.mainScene.openPauseMenu();
     });

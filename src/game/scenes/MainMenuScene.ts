@@ -1,13 +1,12 @@
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { SaveManager } from '../SaveManager';
-import { removeSplashScreen, createUIPanel } from '../utils/utils';
+import { removeSplashScreen, createUIPanel, createPanelButton } from '../utils/utils';
 import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 import { CustomScene } from '../customClasses/CustomScene';
 
 export class MainMenuScene extends CustomScene {
-  private continueBtn!: Phaser.GameObjects.Text;
   private confirmGroup: Phaser.GameObjects.GameObject[] = [];
   private audio!: AudioManager;
 
@@ -24,7 +23,7 @@ export class MainMenuScene extends CustomScene {
     const cy = this.cameras.main.height / 2;
     const tileSize = this.cameras.main.height / 18;
     const titleSize = Math.round(tileSize * 1.4);
-    const btnSize = Math.round(tileSize * 0.7);
+    const btnSize = Math.round(tileSize * 0.6);
 
     this.cameras.main.setBackgroundColor(0x050510);
 
@@ -38,9 +37,7 @@ export class MainMenuScene extends CustomScene {
       .setOrigin(0.5)
       .setAlpha(0.9);
 
-   
-
-    // Language toggle button (top-right) — shows the current language flag
+    // Language toggle button (top-right)
     const currentLang = getLanguage();
     const flagScale = (tileSize * 1.2) / this.textures.get(`flag_${currentLang}`).getSourceImage().width;
     const langBtn = this.add
@@ -59,18 +56,10 @@ export class MainMenuScene extends CustomScene {
     });
 
     // New Game button
-    const newGameBtn = this.add
-      .text(cx, cy + tileSize * 0.5, t('menu.newGame'), {
-        fontSize: `${btnSize}px`,
-        color: '#aaccff',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    newGameBtn.on(Phaser.Input.Events.POINTER_OVER, () => { newGameBtn.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-    newGameBtn.on(Phaser.Input.Events.POINTER_OUT, () => newGameBtn.setColor('#aaccff'));
-    newGameBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    const newGame = createPanelButton(this, cx, cy + tileSize * 0.5, t('menu.newGame'), btnSize);
+    newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => { newGame.text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+    newGame.text.on(Phaser.Input.Events.POINTER_OUT, () => newGame.text.setColor('#aaccff'));
+    newGame.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       if (SaveManager.hasSave()) {
         this.showNewGameConfirm(cx, cy, tileSize);
@@ -79,27 +68,21 @@ export class MainMenuScene extends CustomScene {
       }
     });
 
-    // Continue button (only if save exists)
+    // Continue button
     const hasSave = SaveManager.hasSave();
-
-    this.continueBtn = this.add
-      .text(cx, cy + tileSize * 2, t('menu.continue'), {
-        fontSize: `${btnSize}px`,
-        color: hasSave ? '#aaccff' : '#333344',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5);
+    const continueBtn = createPanelButton(this, cx, cy + tileSize * 2, t('menu.continue'), btnSize, {
+      color: hasSave ? '#aaccff' : '#333344',
+      panelAlpha: hasSave ? 0.5 : 0.15,
+    });
 
     if (hasSave) {
-      this.continueBtn.setInteractive({ useHandCursor: true });
-      this.continueBtn.on(Phaser.Input.Events.POINTER_OVER, () => { this.continueBtn.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-      this.continueBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.continueBtn.setColor('#aaccff'));
-      this.continueBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      continueBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => { continueBtn.text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+      continueBtn.text.on(Phaser.Input.Events.POINTER_OUT, () => continueBtn.text.setColor('#aaccff'));
+      continueBtn.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
         this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
         this.startGame(true);
       });
 
-      // Show save date
       const ts = SaveManager.getSaveTimestamp();
       if (ts) {
         const date = new Date(ts);
@@ -112,21 +95,17 @@ export class MainMenuScene extends CustomScene {
           })
           .setOrigin(0.5);
       }
+    } else {
+      continueBtn.text.disableInteractive();
     }
 
     // Quit button
-    const quitBtn = this.add
-      .text(cx, cy + tileSize * 4, t('menu.quit'), {
-        fontSize: `${btnSize}px`,
-        color: '#666688',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    quitBtn.on(Phaser.Input.Events.POINTER_OVER, () => { quitBtn.setColor('#ff6666'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-    quitBtn.on(Phaser.Input.Events.POINTER_OUT, () => quitBtn.setColor('#666688'));
-    quitBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    const quit = createPanelButton(this, cx, cy + tileSize * 3.5, t('menu.quit'), btnSize, {
+      color: '#666688',
+    });
+    quit.text.on(Phaser.Input.Events.POINTER_OVER, () => { quit.text.setColor('#ff6666'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+    quit.text.on(Phaser.Input.Events.POINTER_OUT, () => quit.text.setColor('#666688'));
+    quit.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
       if (Capacitor.getPlatform() === 'android') {
         App.exitApp();
@@ -164,42 +143,24 @@ export class MainMenuScene extends CustomScene {
       .setOrigin(0.5)
       .setDepth(11);
 
-    const yesBtn = this.add
-      .text(cx - tileSize * 2, cy + tileSize * 0.5, t('menu.yes'), {
-        fontSize: `${smallSize}px`,
-        color: '#aaccff',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5)
-      .setDepth(11)
-      .setInteractive({ useHandCursor: true });
-
-    yesBtn.on(Phaser.Input.Events.POINTER_OVER, () => yesBtn.setColor('#ffffff'));
-    yesBtn.on(Phaser.Input.Events.POINTER_OUT, () => yesBtn.setColor('#aaccff'));
-    yesBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    const yes = createPanelButton(this, cx - tileSize * 2, cy + tileSize * 0.5, t('menu.yes'), smallSize, { depth: 11 });
+    yes.text.on(Phaser.Input.Events.POINTER_OVER, () => yes.text.setColor('#ffffff'));
+    yes.text.on(Phaser.Input.Events.POINTER_OUT, () => yes.text.setColor('#aaccff'));
+    yes.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.audio.playSfx(AUDIO_KEYS.UI_CONFIRM, 0.4);
       SaveManager.deleteSave();
       this.startGame();
     });
 
-    const noBtn = this.add
-      .text(cx + tileSize * 2, cy + tileSize * 0.5, t('menu.no'), {
-        fontSize: `${smallSize}px`,
-        color: '#aaccff',
-        fontFamily: 'PixelSleigh',
-      })
-      .setOrigin(0.5)
-      .setDepth(11)
-      .setInteractive({ useHandCursor: true });
-
-    noBtn.on(Phaser.Input.Events.POINTER_OVER, () => noBtn.setColor('#ffffff'));
-    noBtn.on(Phaser.Input.Events.POINTER_OUT, () => noBtn.setColor('#aaccff'));
-    noBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+    const no = createPanelButton(this, cx + tileSize * 2, cy + tileSize * 0.5, t('menu.no'), smallSize, { depth: 11 });
+    no.text.on(Phaser.Input.Events.POINTER_OVER, () => no.text.setColor('#ffffff'));
+    no.text.on(Phaser.Input.Events.POINTER_OUT, () => no.text.setColor('#aaccff'));
+    no.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.audio.playSfx(AUDIO_KEYS.UI_CANCEL, 0.4);
       this.dismissConfirm();
     });
 
-    this.confirmGroup = [overlay, panel, warning, yesBtn, noBtn];
+    this.confirmGroup = [overlay, panel, warning, yes.text, yes.bg, no.text, no.bg];
   }
 
   private dismissConfirm() {

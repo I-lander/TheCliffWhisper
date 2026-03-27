@@ -37,25 +37,25 @@ export function t(key: string): string {
 const EN: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisperer',
-  'menu.newGame': '[ New Game ]',
-  'menu.continue': '[ Continue ]',
-  'menu.quit': '[ Quit ]',
+  'menu.newGame': 'New Game',
+  'menu.continue': 'Continue',
+  'menu.quit': 'Quit',
   'menu.confirmLose': 'Your save will be lost.\nStart a new game?',
-  'menu.yes': '[ Yes ]',
-  'menu.no': '[ No ]',
+  'menu.yes': 'Yes',
+  'menu.no': 'No',
   'menu.language': 'FR',
 
   // Pause menu
   'pause.title': 'Paused',
-  'pause.resume': '[ Resume ]',
-  'pause.save': '[ Save ]',
-  'pause.mainMenu': '[ Main Menu ]',
-  'pause.quitGame': '[ Quit Game ]',
+  'pause.resume': 'Resume',
+  'pause.save': 'Save',
+  'pause.mainMenu': 'Main Menu',
+  'pause.quitGame': 'Quit Game',
   'pause.saved': 'Game saved!',
 
   // HUD
   'hud.day': 'Day',
-  'hud.menu': '[ Menu ]',
+  'hud.menu': 'Menu',
   'hud.population': 'Population',
   'hud.souls': 'Souls',
   'hud.jumped': 'Jumped',
@@ -81,9 +81,9 @@ const EN: Record<string, string> = {
 
   // End run
   'end.victory': 'Silence.',
-  'end.defeat': 'They endure.',
-  'end.victoryStats': 'Extinction achieved in {days} days.',
-  'end.defeatStats': 'Population: {pop}\nThe birth rate could no longer be overcome.',
+  'end.defeat': 'Game over.',
+  'end.victoryStats': 'Nobody remains, bravo.',
+  'end.defeatStats': 'They lived happilly.',
   'end.restart': 'Click to try again',
 
   // Skill tree
@@ -361,25 +361,25 @@ const EN: Record<string, string> = {
 const FR: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisperer',
-  'menu.newGame': '[ Nouvelle Partie ]',
-  'menu.continue': '[ Continuer ]',
-  'menu.quit': '[ Quitter ]',
+  'menu.newGame': 'Nouvelle Partie',
+  'menu.continue': 'Continuer',
+  'menu.quit': 'Quitter',
   'menu.confirmLose': 'Votre sauvegarde sera perdue.\nCommencer une nouvelle partie ?',
-  'menu.yes': '[ Oui ]',
-  'menu.no': '[ Non ]',
+  'menu.yes': 'Oui',
+  'menu.no': 'Non',
   'menu.language': 'EN',
 
   // Pause menu
   'pause.title': 'Pause',
-  'pause.resume': '[ Reprendre ]',
-  'pause.save': '[ Sauvegarder ]',
-  'pause.mainMenu': '[ Menu Principal ]',
-  'pause.quitGame': '[ Quitter le Jeu ]',
+  'pause.resume': 'Reprendre',
+  'pause.save': 'Sauvegarder',
+  'pause.mainMenu': 'Menu Principal',
+  'pause.quitGame': 'Quitter le Jeu',
   'pause.saved': 'Partie sauvegardee !',
 
   // HUD
   'hud.day': 'Jour',
-  'hud.menu': '[ Menu ]',
+  'hud.menu': 'Menu',
   'hud.population': 'Population',
   'hud.souls': 'Ames',
   'hud.jumped': 'Sautes',
@@ -405,9 +405,9 @@ const FR: Record<string, string> = {
 
   // End run
   'end.victory': 'Silence.',
-  'end.defeat': 'Ils endurent.',
-  'end.victoryStats': 'Extinction atteinte en {days} jours.',
-  'end.defeatStats': 'Population : {pop}\nLe taux de natalite ne pouvait plus etre surmonte.',
+  'end.defeat': 'Game Over.',
+  'end.victoryStats': 'Il ne reste plus personne, bravo.',
+  'end.defeatStats': 'Ils vécurent heureux.',
   'end.restart': 'Cliquez pour reessayer',
 
   // Skill tree

@@ -15,20 +15,21 @@ void main() {
 		return;
 	}
 
-	float offsetX = dynamicOffsetX / resolution.x;
-	vec4 baseColor   = texture2D(uMainSampler, uv);
-	vec4 redGhost    = texture2D(uMainSampler, uv + vec2(-offsetX, 0.0));
-	vec4 greenGhost  = texture2D(uMainSampler, uv + vec2(offsetX, 0.0));
+	vec4 baseColor = texture2D(uMainSampler, uv);
+	vec3 finalColor;
 
-	vec3 finalColor = vec3(
-		redGhost.r,
-		baseColor.g,
-		greenGhost.b
-	);
+	if (abs(dynamicOffsetX) > 0.01) {
+		float offsetX = dynamicOffsetX / resolution.x;
+		vec4 redGhost   = texture2D(uMainSampler, uv + vec2(-offsetX, 0.0));
+		vec4 greenGhost = texture2D(uMainSampler, uv + vec2(offsetX, 0.0));
+		finalColor = vec3(redGhost.r, baseColor.g, greenGhost.b);
+	} else {
+		finalColor = baseColor.rgb;
+	}
 
 	vec2 pos = uv * 2.0 - 1.0;
 	float dist = length(pos);
-	float vignette = 1.0 - smoothstep(0.8, 1.4, dist);
+	float vignette = 1.0 - smoothstep(1.0, 1.6, dist) * 0.3;
 
 	float scanlineY = gl_FragCoord.y / resolution.y;
 	float scanline = 0.99 + 0.05 * sin(scanlineY * 800.0);
@@ -44,7 +45,7 @@ void main() {
 `;
 
 export default class CrtShader extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
-  public dynamicOffsetX: number = 5;
+  public dynamicOffsetX: number = 0;
   public screenWidth: number = 512;
   public screenHeight: number = 288;
 

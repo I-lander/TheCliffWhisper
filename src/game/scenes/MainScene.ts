@@ -86,6 +86,25 @@ export class MainScene extends CustomScene {
 
   init(data?: { loadSave?: boolean }) {
     this.loadSave = data?.loadSave ?? false;
+
+    // Cleanup previous run
+    if (this.cloudManager) this.cloudManager.destroy();
+
+    // Reset all runtime state for a fresh game
+    this.humans = [];
+    this.firstHumanSpawned = false;
+    this.autoClickTimer = 0;
+    this.runEnded = false;
+    this.clickCooldownTimer = 0;
+    this.soulHarvestActive = false;
+    this.savedBirthratePerSec = 0;
+    this.isDragging = false;
+    this.waveElapsed = 0;
+    // Reset camera scroll from potential night constellation view
+    if (this.cameras?.main) {
+      this.cameras.main.scrollX = 0;
+      this.cameras.main.scrollY = 0;
+    }
   }
 
   create() {
