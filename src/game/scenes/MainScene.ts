@@ -59,6 +59,7 @@ export class MainScene extends CustomScene {
   private firstHumanSpawned: boolean = false;
   private autoClickTimer: number = 0;
   private birthSpawnTimer: number = 0;
+  private contagionTimer: number = 0;
   private runEnded: boolean = false;
 
   // Click cooldown
@@ -96,6 +97,7 @@ export class MainScene extends CustomScene {
     this.firstHumanSpawned = false;
     this.autoClickTimer = 0;
     this.birthSpawnTimer = 0;
+    this.contagionTimer = 0;
     this.runEnded = false;
     this.clickCooldownTimer = 0;
     this.soulHarvestActive = false;
@@ -283,6 +285,7 @@ export class MainScene extends CustomScene {
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
         this.birthSpawnTimer = 0;
+        this.contagionTimer = 0;
         this.clickCooldownTimer = 0;
         this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
@@ -593,14 +596,19 @@ export class MainScene extends CustomScene {
     }
 
     // Contagion: walking humans can re-convert turning-back humans when crossing
+    // Throttled to every 500ms to avoid instant re-conversion
     if (this.gameManager.getPhase() === GamePhase.Daytime) {
-      const crossDist = this.tileSize * 0.8;
-      const walkers = this.humans.filter((h) => h.isWalking());
-      const turners = this.humans.filter((h) => h.isTurningBack());
-      for (const walker of walkers) {
-        for (const turner of turners) {
-          if (Math.abs(walker.x - turner.x) < crossDist && this.populationManager.shouldDragTurnBack()) {
-            turner.reconvert();
+      this.contagionTimer += delta;
+      if (this.contagionTimer >= 500) {
+        this.contagionTimer -= 500;
+        const crossDist = this.tileSize * 0.8;
+        const walkers = this.humans.filter((h) => h.isWalking());
+        const turners = this.humans.filter((h) => h.isTurningBack());
+        for (const walker of walkers) {
+          for (const turner of turners) {
+            if (Math.abs(walker.x - turner.x) < crossDist && this.populationManager.shouldDragTurnBack()) {
+              turner.reconvert();
+            }
           }
         }
       }

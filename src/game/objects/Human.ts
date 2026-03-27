@@ -29,6 +29,7 @@ export class Human extends Phaser.GameObjects.Sprite {
   private walkAnimSpeed: number = 0;
   private flipProgress: number = 0;
   private flipToWalk: boolean = false; // true = reconversion flip (back toward cliff)
+  private wasReconverted: boolean = false;
   private baseScaleX: number = 0;
   private splashed: boolean = false;
 
@@ -243,6 +244,8 @@ this.setDepth(105);
   /** Re-convert a turning-back human: flip them around and resume walking toward the cliff. */
   reconvert() {
     if (this.state !== HumanState.TurningBack) return;
+    if (this.wasReconverted) return;
+    this.wasReconverted = true;
     this.state = HumanState.FlipTurn;
     this.flipProgress = 0;
     this.flipToWalk = true;
