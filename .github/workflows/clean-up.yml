@@ -1,0 +1,25 @@
+name: Cleanup workflow runs
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete old runs (keep last 25 global)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # List all runs, newest first
+          runs=$(gh api repos/${{ github.repository }}/actions/runs \
+                   --paginate -q '.workflow_runs[].id')
+
+          # Skip the 25 newest, delete the rest
+          echo "$runs" | tail -n +26 | while read run_id; do
+            echo "Deleting run $run_id"
+            gh api repos/${{ github.repository }}/actions/runs/$run_id -X DELETE
+          done

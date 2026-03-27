@@ -1,0 +1,41 @@
+name: Deploy to Itch.io
+
+on:
+  push:
+    tags:
+      - '*'
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      BUTLER_API_KEY: ${{ secrets.ITCHIO_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+    
+      - name: Set up Butler
+        uses: remarkablegames/setup-butler@v2
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCHIO_API_KEY }}
+
+      - name: Push HTML5 to Itch.io
+        run: |
+          butler push ./dist \
+            donkey-isle/the-cliff-whisper:html5 \
+            --if-changed
+
