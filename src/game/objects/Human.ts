@@ -142,7 +142,7 @@ this.setDepth(105);
         break;
 
       case HumanState.Falling: {
-        const waveY = (this.scene as MainScene).getFirstWaveWorldY(this.x);
+        const waveY = (this.scene as MainScene).getFirstWaveWorldY(this.x) +  this.scene.cameras.main.height / 18;
         const inWater = this.y > waveY;
         const drag = inWater ? 0.15 : 1;
 
@@ -179,7 +179,7 @@ this.setDepth(105);
     for (let i = 0; i < count; i++) {
       const size = pu * (1 + Math.random() * 2);
       const particle = this.scene.add
-        .rectangle(x + (Math.random() - 0.5) * pu * 8, y, size, size, 0x222222, 0.8)
+        .rectangle(x + (Math.random() - 0.5) * pu * 8, y, size, size, 0xffffff, 0.5)
         .setDepth(115);
 
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.6;

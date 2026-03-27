@@ -758,5 +758,12 @@ export class MainScene extends CustomScene {
     this.constellationManager.souls = data.souls;
     this.constellationManager.unlockedNodes = new Set(data.unlockedNodes);
     this.constellationManager.bonuses = JSON.parse(JSON.stringify(data.bonuses));
+
+    // Refresh ability bar if abilities are unlocked
+    const isDaytime = data.currentPhase === GamePhase.Daytime;
+    if (this.constellationManager.bonuses.abilities.length > 0) {
+      this.abilityUI.refresh();
+      this.abilityUI.setVisible(isDaytime);
+    }
   }
 }

@@ -75,23 +75,44 @@ export class AbilityUI {
 
     const cam = this.scene.cameras.main;
     const tileSize = cam.height / 18;
-    const btnW = tileSize * 3.5;
-    const btnH = tileSize * 1.2;
-    const gap = tileSize * 0.4;
-    const totalW = unlocked.length * (btnW + gap) - gap;
-    let startX = (cam.width - totalW) / 2;
-    const y = cam.height - tileSize * 3;
+    const fontSize = Math.round(tileSize * 0.32);
+    const padX = tileSize * 0.6;
+    const padY = tileSize * 0.3;
+    const gap = tileSize * 0.3;
 
-    unlocked.forEach((def) => {
-      this.createButton(def, startX, y, btnW, btnH);
-      startX += btnW + gap;
+    // Measure each button based on its text
+    const measurements = unlocked.map((def) => {
+      const name = t(`ability.${def.id}.name`);
+      const tmpText = this.scene.add.text(0, 0, name, {
+        fontSize: `${fontSize}px`,
+        fontFamily: 'PixelSleigh',
+      });
+      const w = tmpText.width + padX * 2;
+      const h = tmpText.height + padY * 2;
+      tmpText.destroy();
+      return { def, w, h };
     });
+
+    const btnH = measurements.reduce((max, m) => Math.max(max, m.h), 0);
+    const maxW = measurements.reduce((max, m) => Math.max(max, m.w), 0);
+
+    // Vertical column, anchored bottom-right
+    const totalH = unlocked.length * (btnH + gap) - gap;
+    const baseX = cam.width * 0.75 - maxW - tileSize ;
+    const baseY = cam.height - tileSize * 1.5 - totalH;
+
+    for (let i = 0; i < measurements.length; i++) {
+      const m = measurements[i];
+      const y = baseY + i * (btnH + gap);
+      this.createButton(m.def, baseX, y, maxW, btnH);
+    }
   }
 
   private createButton(def: AbilityDef, x: number, y: number, w: number, h: number) {
     const tileSize = this.scene.cameras.main.height / 18;
+    const pixelUnit = tileSize / 16;
     const fontSize = Math.round(tileSize * 0.32);
-    const lineWidth = Math.round(tileSize * 0.04);
+    const lineWidth = pixelUnit;
 
     const bg = this.scene.add.graphics();
     createUIPanel(bg, x, y, w, h, lineWidth, 0x4466aa, 0.5, { color: 0x111122, alpha: 0.85 });
