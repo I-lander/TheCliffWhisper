@@ -198,7 +198,7 @@ export class MainMenuScene extends CustomScene {
       })
       .setOrigin(0.5)
       .setAlpha(0.95)
-      .setDepth(7);
+      .setDepth(100);
 
     // Subtitle
     this.add
@@ -209,7 +209,7 @@ export class MainMenuScene extends CustomScene {
       })
       .setOrigin(0.5)
       .setAlpha(0.7)
-      .setDepth(7);
+      .setDepth(100);
 
     // Language toggle (top-right)
     const currentLang = getLanguage();
@@ -220,7 +220,7 @@ export class MainMenuScene extends CustomScene {
       .setOrigin(1, 0)
       .setScale(flagScale)
       .setAlpha(0.7)
-      .setDepth(7)
+      .setDepth(100)
       .setInteractive({ useHandCursor: true });
 
     langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setAlpha(1));
@@ -233,12 +233,12 @@ export class MainMenuScene extends CustomScene {
 
     // ── Buttons — below cliff ──
     const hasSave = SaveManager.hasSave();
-    const btnZoneTop = this.groundY + this.ts * 2;
+    const btnZoneTop = this.groundY + this.ts * 1.7;
     const btnZoneMid = btnZoneTop + this.ts * 1.5;
 
     if (hasSave) {
       const continueBtn = createPanelButton(this, cx, btnZoneTop, t('menu.continue'), btnSize, {
-        depth: 7,
+        depth: 100,
       });
       continueBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => {
         continueBtn.text.setColor('#ffffff');
@@ -260,24 +260,24 @@ export class MainMenuScene extends CustomScene {
           ' ' +
           date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.add
-          .text(cx, btnZoneTop + this.ts * 0.8, dateStr, {
+          .text(cx, btnZoneTop + this.ts * 0.9, dateStr, {
             fontSize: `${Math.round(this.ts * 0.35)}px`,
             color: '#556688',
             fontFamily: 'PixelSleigh',
           })
           .setOrigin(0.5)
-          .setDepth(7);
+          .setDepth(100);
       }
 
       const newGame = createPanelButton(
         this,
         cx,
-        btnZoneTop + this.ts * 1.8,
+        btnZoneTop + this.ts * 2,
         t('menu.newGame'),
         smallBtnSize,
         {
           color: '#666688',
-          depth: 7,
+          depth: 100,
         },
       );
       newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => {
@@ -291,7 +291,7 @@ export class MainMenuScene extends CustomScene {
       });
     } else {
       const newGame = createPanelButton(this, cx, btnZoneTop, t('menu.newGame'), btnSize, {
-        depth: 7,
+        depth: 100,
       });
       newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => {
         newGame.text.setColor('#ffffff');
@@ -305,10 +305,10 @@ export class MainMenuScene extends CustomScene {
     }
 
     // Quit button
-    const quitY = btnZoneTop + (hasSave ? this.ts * 3 : this.ts * 1.8);
+    const quitY = btnZoneTop + (hasSave ? this.ts * 3.3 : this.ts * 1.8);
     const quit = createPanelButton(this, cx, quitY, t('menu.quit'), smallBtnSize, {
       color: '#666688',
-      depth: 7,
+      depth: 100,
     });
     quit.text.on(Phaser.Input.Events.POINTER_OVER, () => {
       quit.text.setColor('#ff6666');
@@ -324,7 +324,7 @@ export class MainMenuScene extends CustomScene {
       }
     });
 
-    // Settings toggles (bottom)
+    // Settings toggles (bottom)lors d'un continu
     const toggleSize = Math.round(this.ts * 0.4);
     const toggleY = h - this.ts * 1.5;
 
@@ -336,7 +336,7 @@ export class MainMenuScene extends CustomScene {
       toggleSize,
       {
         color: isSoundEnabled() ? '#aaccff' : '#666688',
-        depth: 7,
+        depth: 100,
       },
     );
     soundBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => soundBtn.text.setColor('#ffffff'));
@@ -363,7 +363,7 @@ export class MainMenuScene extends CustomScene {
       toggleSize,
       {
         color: isCrtEnabled() ? '#aaccff' : '#666688',
-        depth: 7,
+        depth: 100,
       },
     );
     crtBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => crtBtn.text.setColor('#ffffff'));
@@ -486,14 +486,14 @@ export class MainMenuScene extends CustomScene {
     const overlay = this.add
       .rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6)
       .setOrigin(0, 0)
-      .setDepth(10);
+      .setDepth(110);
 
     const panelW = tileSize * 10;
     const panelH = tileSize * 5;
     const panelX = cx - panelW / 2;
     const panelY = cy - tileSize * 0.3 - panelH / 2;
     const lineWidth = Math.round(tileSize * 0.06);
-    const panel = this.add.graphics().setDepth(10);
+    const panel = this.add.graphics().setDepth(110);
     createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, {
       color: 0x0a0a1a,
       alpha: 1,
@@ -507,7 +507,7 @@ export class MainMenuScene extends CustomScene {
         align: 'center',
       })
       .setOrigin(0.5)
-      .setDepth(11);
+      .setDepth(111);
 
     const yes = createPanelButton(
       this,
@@ -515,7 +515,7 @@ export class MainMenuScene extends CustomScene {
       cy + tileSize * 0.5,
       t('menu.yes'),
       smallSize,
-      { depth: 11 },
+      { depth: 111 },
     );
     yes.text.on(Phaser.Input.Events.POINTER_OVER, () => yes.text.setColor('#ffffff'));
     yes.text.on(Phaser.Input.Events.POINTER_OUT, () => yes.text.setColor('#aaccff'));
@@ -531,7 +531,7 @@ export class MainMenuScene extends CustomScene {
       cy + tileSize * 0.5,
       t('menu.no'),
       smallSize,
-      { depth: 11 },
+      { depth: 111 },
     );
     no.text.on(Phaser.Input.Events.POINTER_OVER, () => no.text.setColor('#ffffff'));
     no.text.on(Phaser.Input.Events.POINTER_OUT, () => no.text.setColor('#aaccff'));

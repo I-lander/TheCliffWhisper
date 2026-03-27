@@ -7,6 +7,10 @@ import { AUDIO_KEYS } from '../audio/AudioManager';
 import { createPanelButton } from '../utils/utils';
 import { isTutoDone, markTutoDone } from '../Settings';
 
+function formatBigNumber(n: number): string {
+  return n.toLocaleString();
+}
+
 export class UIScene extends CustomScene {
   mainScene!: MainScene;
   private gameManager!: GameManager;
@@ -217,10 +221,10 @@ export class UIScene extends CustomScene {
 
     const pop = this.populationManager.population;
 
-    this.popText.setText(`${t('hud.population')}: ${pop.toLocaleString()}`);
+    this.popText.setText(`${t('hud.population')}: ${formatBigNumber(pop)}`);
 
     const souls = this.mainScene.constellationManager.souls;
-    this.soulsText.setText(`${t('hud.souls')}: ${souls}`);
+    this.soulsText.setText(`${t('hud.souls')}: ${formatBigNumber(souls)}`);
 
     // Bottom-left: detailed stats
     const s = this.populationManager.stats;
@@ -233,7 +237,8 @@ export class UIScene extends CustomScene {
       `${t('stats.clickCooldown')}: ${(s.clickCooldown / 1000).toFixed(2)}s`,
       `${t('stats.autoClickers')}: ${bonuses.autoClickerCount}`,
       `${t('stats.soulMult')}: x${f(bonuses.soulMultiplier)}`,
-      `${t('stats.birthRate')}: +${f(s.birthRate)}/${t('hud.day').toLowerCase()}`,
+      `${t('stats.deathMult')}: x${formatBigNumber(Math.floor(s.deathMultiplier))}`,
+      `${t('stats.birthRate')}: +${formatBigNumber(s.birthRate)}/${t('hud.day').toLowerCase()}`,
       `${t('stats.birthPerSec')}: ${f(s.birthratePerSec)}`,
     ];
     this.statsText.setText(lines.join('\n'));

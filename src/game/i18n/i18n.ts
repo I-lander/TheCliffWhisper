@@ -78,6 +78,7 @@ const EN: Record<string, string> = {
   'stats.clickCooldown': 'Click Delay',
   'stats.autoClickers': 'Auto Clickers',
   'stats.soulMult': 'Soul Bonus',
+  'stats.deathMult': 'Death Mult',
   'stats.birthRate': 'Birth Rate',
   'stats.birthPerSec': 'Births Per Sec',
 
@@ -412,6 +413,7 @@ const FR: Record<string, string> = {
   'stats.clickCooldown': 'Delai Clic',
   'stats.autoClickers': 'Auto Cliqueurs',
   'stats.soulMult': 'Bonus Ames',
+  'stats.deathMult': 'Mult Mort',
   'stats.birthRate': 'Taux Natalite',
   'stats.birthPerSec': 'Naissances Par Sec',
 

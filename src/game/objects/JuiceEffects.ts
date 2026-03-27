@@ -20,10 +20,6 @@ export class JuiceEffects {
     this.scene.shakeScreen(80, 1);
   }
 
-  onDeath() {
-    this.scene.shakeScreen(60, 1);
-  }
-
   spawnSoul(x: number, y: number) {
     const tileSize = this.scene.cameras.main.height / 18;
     const scale = tileSize / 16;

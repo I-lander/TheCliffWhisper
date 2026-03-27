@@ -8,9 +8,10 @@ export interface PopulationStats {
   walkSpeed: number; // pixels per second (base: 120)
   turnBackRate: number; // 0-1 probability (base: 0.30)
   dragRate: number; // 0-1 chance a turning-back human causes another to turn back when crossing (base: 0.05)
-  birthRate: number; // integer — humans added per day at sunset (base: 10)
+  birthRate: number; // integer — humans added per day at sunset (base: 15)
   birthratePerSec: number; // integer — humans spawned per second during day (base: 0)
   clickCooldown: number; // ms between clicks, shared player + auto-clickers (base: 1000)
+  deathMultiplier: number; // each jump kills this many humans (base: 1)
 }
 
 const BASE_STATS: PopulationStats = {
@@ -20,10 +21,11 @@ const BASE_STATS: PopulationStats = {
   birthRate: 15,
   birthratePerSec: 0,
   clickCooldown: 1000,
+  deathMultiplier: 1,
 };
 
 export class PopulationManager {
-  population: number = 1000;
+  population: number = 1_000_000_000;
   jumped: number = 0;
   turnedBack: number = 0;
   born: number = 0;
@@ -68,8 +70,9 @@ export class PopulationManager {
   }
 
   onHumanJumped() {
-    this.population = Math.max(0, this.population - 1);
-    this.jumped++;
+    const kills = Math.floor(this.stats.deathMultiplier);
+    this.population = Math.max(0, this.population - kills);
+    this.jumped += kills;
     this.stagnationTimer = 0;
   }
 
@@ -111,7 +114,7 @@ export class PopulationManager {
   getMaxKillsPerDay(dayDurationMs: number, autoClickerCount: number): number {
     if (autoClickerCount === 0) return 0;
     const clicksPerDay = Math.floor(dayDurationMs / this.stats.clickCooldown) * autoClickerCount;
-    const effectiveKills = clicksPerDay * (1 - this.getEffectiveTurnBackRate());
+    const effectiveKills = clicksPerDay * (1 - this.getEffectiveTurnBackRate()) * Math.floor(this.stats.deathMultiplier);
     return Math.floor(effectiveKills);
   }
 

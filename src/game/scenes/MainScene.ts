@@ -126,8 +126,12 @@ export class MainScene extends CustomScene {
     const tilemapOriginX = 0;
     const tilemapOriginY = this.groundY - (tilemapRows - 1) * this.tileSize;
     this.cliffTilemap = new CliffTilemap(
-      this, tilemapCols, tilemapRows,
-      this.tileSize, tilemapOriginX, tilemapOriginY,
+      this,
+      tilemapCols,
+      tilemapRows,
+      this.tileSize,
+      tilemapOriginX,
+      tilemapOriginY,
     );
     this.cliffTilemap.renderAll();
     this.drawCliffEdge();
@@ -163,7 +167,12 @@ export class MainScene extends CustomScene {
       // Place the decor element on top of the solid cell
       const topRow = this.cliffTilemap.getTopSolidRow(placed.slotIndex);
       if (topRow >= 0) {
-        this.cliffTilemap.placeElement(placed.slotIndex, topRow, placed.def.frameIndex, placed.def.id);
+        this.cliffTilemap.placeElement(
+          placed.slotIndex,
+          topRow,
+          placed.def.frameIndex,
+          placed.def.id,
+        );
       }
     });
 
@@ -192,8 +201,8 @@ export class MainScene extends CustomScene {
     this.waveWorldH = this.canvasHeight - this.waveTopY;
     const waveCenterX = this.canvasWidth / 2;
     const waveCenterY = this.waveTopY + this.waveWorldH / 2;
-    this.waveCanvasW = Math.round(waveWorldW / this.tileSize * SPRITE_BASE_UNIT);
-    this.waveCanvasH = Math.round(this.waveWorldH / this.tileSize * SPRITE_BASE_UNIT);
+    this.waveCanvasW = Math.round((waveWorldW / this.tileSize) * SPRITE_BASE_UNIT);
+    this.waveCanvasH = Math.round((this.waveWorldH / this.tileSize) * SPRITE_BASE_UNIT);
     this.wavePixelToWorld = this.tileSize / SPRITE_BASE_UNIT;
     const waveScale = waveWorldW / this.waveCanvasW;
 
@@ -241,7 +250,10 @@ export class MainScene extends CustomScene {
 
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OVER, () => this.endDayBtn.setColor('#ffffff'));
     this.endDayBtn.on(Phaser.Input.Events.POINTER_OUT, () => this.endDayBtn.setColor('#aaccff'));
-    this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => { this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4); this.gameManager.skipPhase(); });
+    this.endDayBtn.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
+      this.gameManager.skipPhase();
+    });
 
     // Set initial sky color from current game phase
     const initialSky = SKY_COLORS[this.gameManager.getPhase()];
@@ -438,7 +450,9 @@ export class MainScene extends CustomScene {
       }
       case 'frenzy_pulse': {
         const origSpeed = this.populationManager.stats.walkSpeed;
-        this.populationManager.stats.walkSpeed = Math.round(origSpeed * bonuses.frenzyPulse.multiplier);
+        this.populationManager.stats.walkSpeed = Math.round(
+          origSpeed * bonuses.frenzyPulse.multiplier,
+        );
         this.time.delayedCall(bonuses.frenzyPulse.duration, () => {
           this.populationManager.stats.walkSpeed = origSpeed;
         });
@@ -470,7 +484,12 @@ export class MainScene extends CustomScene {
     const cliffDepth = 110;
     const g = this.add.graphics();
     g.fillStyle(0x222222);
-    g.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.tileSize, this.canvasHeight - this.groundY);
+    g.fillRect(
+      -this.cliffEdgeX,
+      this.groundY,
+      this.cliffEdgeX * 2 - this.tileSize,
+      this.canvasHeight - this.groundY,
+    );
     g.setDepth(cliffDepth);
 
     const scale = this.tileSize / 16;
@@ -478,17 +497,21 @@ export class MainScene extends CustomScene {
     const cornerFrame = 15 * 16 + 2;
 
     // Corner at top-right of cliff
-    this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
-      .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+    this.add
+      .image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
+      .setOrigin(1, 0)
+      .setScale(scale)
+      .setDepth(cliffDepth);
 
     // Vertical face going down
     for (let ty = this.groundY + this.tileSize; ty < this.canvasHeight; ty += this.tileSize) {
-      this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
-        .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+      this.add
+        .image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
+        .setOrigin(1, 0)
+        .setScale(scale)
+        .setDepth(cliffDepth);
     }
   }
-
-
 
   // ── Game loop ──
 
@@ -579,30 +602,35 @@ export class MainScene extends CustomScene {
 
     const isFirst = !this.firstHumanSpawned;
     if (isFirst) this.firstHumanSpawned = true;
-    const shouldTurnBack = (forceJump || isFirst) ? false : this.populationManager.shouldTurnBack();
-    const walkSpeed = isFirst ? this.populationManager.stats.walkSpeed * 2 : this.populationManager.stats.walkSpeed;
-
+    const shouldTurnBack = forceJump || isFirst ? false : this.populationManager.shouldTurnBack();
+    
     const human = new Human(
       this,
       overrideX ?? this.spawnX,
       this.groundY,
       this.cliffEdgeX,
-      walkSpeed,
+      this.populationManager.stats.walkSpeed,
       shouldTurnBack,
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
         this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_JUMP, 0.4);
-        // Soul gain: base multiplier × soul harvest if active, always integer
-        const soulHarvestMult = this.soulHarvestActive ? this.constellationManager.bonuses.soulHarvest.multiplier : 1;
-        const soulGain = Math.floor(this.constellationManager.bonuses.soulMultiplier * soulHarvestMult);
+        // Soul gain: deathMultiplier × soulMultiplier × soul harvest if active
+        const kills = Math.floor(this.populationManager.stats.deathMultiplier);
+        const soulHarvestMult = this.soulHarvestActive
+          ? this.constellationManager.bonuses.soulHarvest.multiplier
+          : 1;
+        const soulGain = Math.floor(
+          kills * this.constellationManager.bonuses.soulMultiplier * soulHarvestMult,
+        );
         this.constellationManager.souls += soulGain;
         this.juiceEffects.onJump(jumpX, jumpY);
       },
-      () => { this.populationManager.onHumanTurnedBack(); this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_TURNBACK, 0.3); },
+      () => {
+        this.populationManager.onHumanTurnedBack();
+        this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_TURNBACK, 0.3);
+      },
     );
-    human.setOnFellOff(() => {
-      this.juiceEffects.onDeath();
-    });
+
     this.humans.push(human);
   }
 
@@ -644,7 +672,9 @@ export class MainScene extends CustomScene {
     const amplitudeVariation = 0.7 + (wi % 4) * 0.2;
 
     const primary = Math.sin(shaderWorldX * frequencyA + this.waveElapsed * SPEED + phaseOffset);
-    const secondary = Math.sin(shaderWorldX * frequencyB - this.waveElapsed * SPEED * 0.6 + phaseOffset * 0.7) * 0.4;
+    const secondary =
+      Math.sin(shaderWorldX * frequencyB - this.waveElapsed * SPEED * 0.6 + phaseOffset * 0.7) *
+      0.4;
     const shaderY = baseY + (primary + secondary) * BASE_AMPLITUDE * amplitudeVariation;
 
     // Convert shader canvas Y → world Y

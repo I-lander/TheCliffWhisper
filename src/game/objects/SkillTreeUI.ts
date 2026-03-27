@@ -286,6 +286,14 @@ export class SkillTreeUI {
       }
     });
 
+    // Click on empty space during night → dismiss tooltip
+    scene.input.on(Phaser.Input.Events.POINTER_DOWN, (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (!this.isNight) return;
+      if (currentlyOver.length === 0 && this.tooltipContainer.visible) {
+        this.hideSelection();
+      }
+    });
+
     this.setVisible(false);
   }
 

@@ -26,7 +26,7 @@ export interface SaveData {
   bonuses: ConstellationBonuses;
 }
 
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 export class SaveManager {
   static save(data: SaveData): void {
@@ -41,6 +41,10 @@ export class SaveManager {
     try {
       const data = JSON.parse(raw) as SaveData;
       if (!data.version || !data.currentPhase) return null;
+      // Migrate v1 saves: add deathMultiplier if missing
+      if (data.stats && (data.stats as unknown as Record<string, unknown>).deathMultiplier === undefined) {
+        data.stats.deathMultiplier = 1;
+      }
       return data;
     } catch {
       return null;
