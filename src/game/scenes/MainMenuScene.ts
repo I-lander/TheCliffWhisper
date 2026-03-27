@@ -12,6 +12,7 @@ import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 import { CustomScene } from '../customClasses/CustomScene';
 import { isSoundEnabled, toggleSound, isCrtEnabled, toggleCrt } from '../Settings';
+import { APP_VERSION } from '../utils/versionTag';
 import { DECOR_CATALOG } from '../decor/DecorData';
 import { CliffTilemap } from '../decor/CliffTilemap';
 import { CloudManager } from '../objects/CloudManager';
@@ -377,6 +378,17 @@ export class MainMenuScene extends CustomScene {
       applyCrtSetting(this);
       this.rebuildTogglePanel(crtBtn);
     });
+
+    // Version tag (bottom-left)
+    this.add
+      .text(this.ts * 0.5, h - this.ts * 0.5, `v${APP_VERSION}`, {
+        fontSize: `${Math.round(this.ts * 0.3)}px`,
+        color: '#556688',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0, 1)
+      .setAlpha(0.6)
+      .setDepth(100);
 
     // Screenshot (F2)
     this.input.keyboard!.on('keydown-F2', () => {
