@@ -84,5 +84,5 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.ITCHIO_API_KEY }}
         run: |
           butler push android/app/build/outputs/apk/release/*.apk \
-            donkey-isle/the-cliff-whisper:android \
+            donkey-isle/the-cliff-whispe:android \
             --userversion=${{ env.TAG_NAME }}
