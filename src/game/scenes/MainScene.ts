@@ -488,6 +488,8 @@ export class MainScene extends CustomScene {
     }
   }
 
+
+
   // ── Game loop ──
 
   update(time: number, delta: number) {

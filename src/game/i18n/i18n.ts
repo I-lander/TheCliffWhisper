@@ -37,6 +37,7 @@ export function t(key: string): string {
 const EN: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisper',
+  'menu.subtitle': 'Designed and created by the Donkey',
   'menu.newGame': 'New Game',
   'menu.continue': 'Continue',
   'menu.quit': 'Quit',
@@ -370,6 +371,7 @@ const EN: Record<string, string> = {
 const FR: Record<string, string> = {
   // Main menu
   'menu.title': 'The Cliff Whisper',
+  'menu.subtitle': 'Designé et créé par le Donkey',
   'menu.newGame': 'Nouvelle Partie',
   'menu.continue': 'Continuer',
   'menu.quit': 'Quitter',

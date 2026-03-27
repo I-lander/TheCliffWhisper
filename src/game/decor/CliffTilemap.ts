@@ -9,12 +9,15 @@ export interface TileCell {
   row: number;
   solid: boolean;
   sprite: Phaser.GameObjects.Image | null;
+  grassSprite: Phaser.GameObjects.Image | null;
   elementSprite: Phaser.GameObjects.Image | null;
   elementId: string | null;
 }
 
 const GROUND_FRAME = 15 * 16 + 1;
 const CORNER_FRAME = 15 * 16 + 2;
+const GRASS_FRAMES = [14 * 16 + 0, 14 * 16 + 1, 14 * 16 + 2];
+const GRASS_CHANCE = 0.4;
 
 export class CliffTilemap {
   private grid: TileCell[][] = [];
@@ -46,7 +49,7 @@ export class CliffTilemap {
         row.push({
           col: c, row: r,
           solid: r === rows - 1,
-          sprite: null, elementSprite: null, elementId: null,
+          sprite: null, grassSprite: null, elementSprite: null, elementId: null,
         });
       }
       this.grid.push(row);
@@ -133,6 +136,7 @@ export class CliffTilemap {
     if (!cell) return;
 
     if (cell.sprite) { cell.sprite.destroy(); cell.sprite = null; }
+    if (cell.grassSprite) { cell.grassSprite.destroy(); cell.grassSprite = null; }
     if (!cell.solid) return;
 
     const scale = this.tileSize / 16;
@@ -171,6 +175,17 @@ export class CliffTilemap {
       .setDepth(depth);
 
     cell.sprite = img;
+
+    // Grass on exposed top tiles
+    if (!above && Math.random() < GRASS_CHANCE) {
+      const grassFrame = GRASS_FRAMES[Math.floor(Math.random() * GRASS_FRAMES.length)];
+      const grassY = wy - this.tileSize;
+      cell.grassSprite = this.scene.add.image(wx, grassY, 'worldElement', grassFrame)
+        .setOrigin(0, 0)
+        .setScale(scale)
+        .setTintFill(tint)
+        .setDepth(depth + 6);
+    }
   }
 
   /** Darken higher rows via tint (opaque, no alpha stacking). */

@@ -13,6 +13,7 @@ import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 import { CustomScene } from '../customClasses/CustomScene';
 import { isSoundEnabled, toggleSound, isCrtEnabled, toggleCrt } from '../Settings';
 import { DECOR_CATALOG } from '../decor/DecorData';
+import { CliffTilemap } from '../decor/CliffTilemap';
 import { CloudManager } from '../objects/CloudManager';
 import { createWaveShader } from '../shaders/WaveShader';
 
@@ -21,6 +22,9 @@ interface MenuHuman {
   sprite: Phaser.GameObjects.Image;
   speed: number;
   direction: 1 | -1;
+  state: 'walking' | 'flipping';
+  flipProgress: number;
+  turnTimer: number;
   walkTime: number;
   baseY: number;
   baseScaleX: number;
@@ -42,6 +46,7 @@ export class MainMenuScene extends CustomScene {
   private groundY: number = 0;
   private cliffEdgeX: number = 0;
   private ts: number = 0;
+  isSplashScreenDone: boolean = false;
 
   constructor() {
     super('MainMenuScene');
@@ -50,6 +55,21 @@ export class MainMenuScene extends CustomScene {
   create() {
     super.create();
     initLanguage();
+
+    if (import.meta.env.VITE_IS_DEV_SPLASH === 'true') {
+      document.getElementById('splashScreen')?.remove();
+      this.isSplashScreenDone = true;
+    } else {
+      const splashMinDuration = 3000;
+      const splashElapsed = Date.now() - window.splashStartTime;
+      const remaining = Math.max(splashMinDuration - splashElapsed, 0);
+
+      this.time.delayedCall(remaining, () => {
+        document.getElementById('splashScreen')?.classList.add('fade-out');
+        this.isSplashScreenDone = true;
+      });
+    }
+
     this.audio = new AudioManager(this);
     this.audio.playMusic(AUDIO_KEYS.MENU_THEME, 0.25);
     removeSplashScreen(this);
@@ -60,8 +80,8 @@ export class MainMenuScene extends CustomScene {
     this.ts = h / 18;
     const scale = this.ts / 16;
 
-    this.groundY =  h * 0.4;
-    this.cliffEdgeX = w  * 0.75;
+    this.groundY = h * 0.4;
+    this.cliffEdgeX = w * 0.75;
 
     // ── Background sky ──
     this.cameras.main.setBackgroundColor(0x424f66);
@@ -70,40 +90,74 @@ export class MainMenuScene extends CustomScene {
     const cliffDepth = 2;
     const cliffGfx = this.add.graphics().setDepth(cliffDepth);
     cliffGfx.fillStyle(0x222222);
-    cliffGfx.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.ts, h - this.groundY);
+    cliffGfx.fillRect(
+      -this.cliffEdgeX,
+      this.groundY,
+      this.cliffEdgeX * 2 - this.ts,
+      h - this.groundY,
+    );
 
     const faceFrame = 15 * 16 + 1;
     const cornerFrame = 15 * 16 + 2;
 
     // Corner at top-right of cliff
-    this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
-      .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+    this.add
+      .image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
+      .setOrigin(1, 0)
+      .setScale(scale)
+      .setDepth(cliffDepth);
 
     // Vertical face going down
     for (let ty = this.groundY + this.ts; ty < h; ty += this.ts) {
-      this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
-        .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+      this.add
+        .image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
+        .setOrigin(1, 0)
+        .setScale(scale)
+        .setDepth(cliffDepth);
     }
 
-    // ── Scatter decor elements on the cliff surface ──
-    const decorSlots = Math.floor(this.cliffEdgeX / this.ts);
-    const decorCount = Math.min(decorSlots - 2, 8 + Math.floor(Math.random() * 4));
+    // ── Tilemap with hills, decor & grass (same as in-game) ──
+    const tilemapCols = Math.floor(this.cliffEdgeX / this.ts) - 1;
+    const tilemapRows = 5;
+    const tilemapOriginX = 0;
+    const tilemapOriginY = this.groundY - (tilemapRows - 1) * this.ts;
+    const tilemap = new CliffTilemap(
+      this,
+      tilemapCols,
+      tilemapRows,
+      this.ts,
+      tilemapOriginX,
+      tilemapOriginY,
+    );
+    tilemap.renderAll();
+
+    // Build some random hills and place decor, mimicking DecorManager logic
+    const decorCount = 15 + Math.floor(Math.random() * 5);
     const usedSlots = new Set<number>();
     for (let i = 0; i < decorCount; i++) {
       let slot: number;
       do {
-        slot = 1 + Math.floor(Math.random() * (decorSlots - 2));
+        slot = 1 + Math.floor(Math.random() * (tilemapCols - 2));
       } while (usedSlots.has(slot));
       usedSlots.add(slot);
+
+      // Random elevation: 0 (ground), 1, 2, or 3 levels high
+      const rand = Math.random();
+      const elevation = rand < 0.45 ? 0 : rand < 0.7 ? 1 : rand < 0.9 ? 2 : 3;
+      // Build hill from ground up to target elevation
+      for (let e = 1; e <= elevation; e++) {
+        const row = tilemapRows - 1 - e;
+        for (let dc = -1; dc <= 1; dc++) {
+          const c = slot + dc;
+          if (c >= 0 && c < tilemapCols) tilemap.setSolid(c, row);
+        }
+      }
+
       const def = DECOR_CATALOG[Math.floor(Math.random() * DECOR_CATALOG.length)];
-      const dx = slot * this.ts;
-      const dy = this.groundY - this.ts;
-      this.add
-        .image(dx, dy, 'worldElement', def.frameIndex)
-        .setOrigin(0, 0)
-        .setScale(scale)
-        .setDepth(4)
-        .setAlpha(0.8);
+      const topRow = tilemap.getTopSolidRow(slot);
+      if (topRow >= 0) {
+        tilemap.placeElement(slot, topRow, def.frameIndex, def.id);
+      }
     }
 
     // ── Clouds ──
@@ -137,13 +191,24 @@ export class MainMenuScene extends CustomScene {
 
     // Title — above the cliff
     this.add
-      .text(cx, this.groundY - this.ts * 2.5, t('menu.title'), {
+      .text(cx, this.ts * 1.5, t('menu.title'), {
         fontSize: `${titleSize}px`,
         color: '#ffffff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
       .setAlpha(0.95)
+      .setDepth(7);
+
+    // Subtitle
+    this.add
+      .text(cx, this.ts * 1.5 + titleSize * 0.9, t('menu.subtitle'), {
+        fontSize: `${Math.round(this.ts * 0.35)}px`,
+        color: '#8899aa',
+        fontFamily: 'PixelSleigh',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.7)
       .setDepth(7);
 
     // Language toggle (top-right)
@@ -313,9 +378,13 @@ export class MainMenuScene extends CustomScene {
       this.rebuildTogglePanel(crtBtn);
     });
 
-    // Humans spawn off-screen left and walk in
+    // Humans — some already on the cliff, others will spawn off-screen
     this.menuHumans = [];
     this.spawnTimer = 0;
+    const initialCount = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < initialCount; i++) {
+      this.spawnMenuHuman(this.ts * 2 + Math.random() * (this.cliffEdgeX - this.ts * 4));
+    }
   }
 
   update(_time: number, delta: number) {
@@ -335,38 +404,63 @@ export class MainMenuScene extends CustomScene {
       this.spawnTimer = 2000 + Math.random() * 4000;
     }
 
-    // Update humans — walk back and forth
+    // Update humans — walk with Paper Mario flip turn
     for (const mh of this.menuHumans) {
-      mh.sprite.x += mh.speed * mh.direction * dt;
-      mh.walkTime += dt * (10 + mh.speed / 30);
-      mh.sprite.y = mh.baseY + Math.sin(mh.walkTime) * 0.8;
-      mh.sprite.setRotation(Math.sin(mh.walkTime * 0.5) * 0.08);
+      if (mh.state === 'walking') {
+        mh.sprite.x += mh.speed * mh.direction * dt;
+        mh.walkTime += dt * (10 + mh.speed / 30);
+        mh.sprite.y = mh.baseY + Math.sin(mh.walkTime) * 0.8;
+        mh.sprite.setRotation(Math.sin(mh.walkTime * 0.5) * 0.08);
 
-      // Turn around at cliff edge or left side
-      if (mh.direction === 1 && mh.sprite.x >= this.cliffEdgeX - this.ts) {
-        mh.direction = -1;
-        mh.sprite.setScale(-mh.baseScaleX, mh.sprite.scaleY);
-      } else if (mh.direction === -1 && mh.sprite.x <= this.ts) {
-        mh.direction = 1;
-        mh.sprite.setScale(mh.baseScaleX, mh.sprite.scaleY);
+        // Random turn or forced at edges
+        mh.turnTimer -= delta;
+        const atEdge = (mh.direction === 1 && mh.sprite.x >= this.cliffEdgeX - this.ts)
+          || (mh.direction === -1 && mh.sprite.x <= this.ts);
+        if (mh.turnTimer <= 0 || atEdge) {
+          mh.state = 'flipping';
+          mh.flipProgress = 0;
+          mh.sprite.setRotation(0);
+        }
+      } else if (mh.state === 'flipping') {
+        // Paper Mario style: squeeze scaleX to 0, then expand flipped
+        mh.flipProgress += dt * 4;
+        if (mh.flipProgress < 1) {
+          const s = mh.baseScaleX * (1 - mh.flipProgress);
+          mh.sprite.setScale(mh.direction === -1 ? -s : s, Math.abs(mh.sprite.scaleY));
+        } else if (mh.flipProgress < 2) {
+          const newDir = (mh.direction === 1 ? -1 : 1) as 1 | -1;
+          const s = mh.baseScaleX * (mh.flipProgress - 1);
+          mh.sprite.setScale(newDir === -1 ? -s : s, Math.abs(mh.sprite.scaleY));
+        } else {
+          // Done — flip direction and resume walking
+          mh.direction = (mh.direction === 1 ? -1 : 1) as 1 | -1;
+          mh.sprite.setScale(mh.direction === -1 ? -mh.baseScaleX : mh.baseScaleX, Math.abs(mh.sprite.scaleY));
+          mh.state = 'walking';
+          mh.turnTimer = 3000 + Math.random() * 6000;
+        }
       }
     }
   }
 
-  private spawnMenuHuman() {
+  private spawnMenuHuman(startX?: number) {
     const spriteScale = this.cameras.main.height / 18 / 16;
+    const x = startX ?? -this.ts;
+    const direction: 1 | -1 = startX != null ? (Math.random() < 0.5 ? 1 : -1) : 1;
     const sprite = this.add
-      .image(-this.ts, this.groundY, 'human')
-      .setScale(spriteScale)
+      .image(x, this.groundY, 'human')
+      .setScale(direction === -1 ? -spriteScale : spriteScale, spriteScale)
       .setOrigin(0.5, 1)
-      .setDepth(4)
+      .setDepth(60)
       .setAlpha(0.7);
 
     const speed = 30 + Math.random() * 50;
     this.menuHumans.push({
       sprite,
       speed,
-      direction: 1,
+      direction,
+      state: 'walking',
+      flipProgress: 0,
+      turnTimer: 3000 + Math.random() * 6000,
       walkTime: Math.random() * Math.PI * 2,
       baseY: this.groundY,
       baseScaleX: spriteScale,
