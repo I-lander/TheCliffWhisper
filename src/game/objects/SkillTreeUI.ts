@@ -562,14 +562,17 @@ export class SkillTreeUI {
     const cam = this.scene.cameras.main;
     const tileSize = cam.height / 18;
     const pad = Math.round(tileSize * 0.4);
-    const pu = cam.height / 288;
+    const pu = tileSize/16;
     const colorStr = '#' + branchColor.toString(16).padStart(6, '0');
 
-    this.tooltipDesc.setText(t(`node.${node.id}.desc`)).setColor(colorStr);
+    // Show node name (localized) + technical stat/modifier description (localized)
+    this.tooltipName.setText(t(`node.${node.id}.name`)).setColor(colorStr).setVisible(true);
+    this.tooltipDesc.setText(t(`node.${node.id}.desc`)).setColor('#cccccc');
+    this.tooltipDesc.setY(this.tooltipName.height + pad * 0.3);
     this.tooltipCost.setText(
       unlocked ? t('tree.unlocked') : t('tree.cost').replace('{cost}', String(node.cost)),
     );
-    this.tooltipCost.setY(this.tooltipDesc.height + pad * 0.5);
+    this.tooltipCost.setY(this.tooltipDesc.y + this.tooltipDesc.height + pad * 0.5);
     if (unlocked) this.tooltipCost.setColor('#44ff88');
     else this.tooltipCost.setColor('#ffcc44');
 
@@ -577,7 +580,7 @@ export class SkillTreeUI {
 
     // Tooltip dimensions — extra space on right for close button
     const closeBtnSpace = Math.round(pad * 1.5);
-    const w = Math.max(this.tooltipDesc.width, this.tooltipCost.width) + pad * 2 + closeBtnSpace;
+    const w = Math.max(this.tooltipName.width, this.tooltipDesc.width, this.tooltipCost.width) + pad * 2 + closeBtnSpace;
     const h = this.tooltipCost.y + this.tooltipCost.height + pad;
 
     this.tooltipBg.clear();

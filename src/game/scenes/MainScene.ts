@@ -689,6 +689,7 @@ export class MainScene extends CustomScene {
 
   private forceAllTurnBack() {
     for (const human of this.humans) {
+      if(human.hasTurnedBack) continue; // Don't force turn back again if already turned back (e.g. from Void Call)
       human.forceTurnBack();
     }
   }

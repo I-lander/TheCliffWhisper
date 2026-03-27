@@ -176,7 +176,7 @@ export class AbilityUI {
 
   private showTooltip(def: AbilityDef, btnX: number, btnY: number, btnW: number) {
     const tileSize = this.scene.cameras.main.height / 18;
-    const lineWidth = Math.round(tileSize * 0.04);
+    const lineWidth = tileSize / 16;
     const bonuses = this.getBonuses();
     const stats = this.getAbilityStats(def.id, bonuses);
 

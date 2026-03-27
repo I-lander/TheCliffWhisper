@@ -127,20 +127,14 @@ export class PauseMenuScene extends CustomScene {
     const cx = w / 2;
     const cy = h / 2;
     const smallSize = Math.round(tileSize * 0.45);
-    const lineWidth = Math.round(tileSize * 0.06);
+    const lineWidth = tileSize / 16;
 
     const confirmOverlay = this.add
       .rectangle(0, 0, w, h, 0x000000, 0.5)
       .setOrigin(0, 0)
       .setDepth(10);
 
-    const panelW = tileSize * 10;
-    const panelH = tileSize * 5;
-    const panelX = cx - panelW / 2;
-    const panelY = cy - panelH / 2;
-    const panel = this.add.graphics().setDepth(10);
-    createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, { color: 0x0a0a1a, alpha: 1 });
-
+    // Create text first to measure it, then size the panel accordingly
     const warning = this.add
       .text(cx, cy - tileSize * 1, t('pause.confirmLeave'), {
         fontSize: `${smallSize}px`,
@@ -161,6 +155,20 @@ export class PauseMenuScene extends CustomScene {
     });
 
     const no = createPanelButton(this, cx + tileSize * 2, cy + tileSize * 1, t('menu.no'), smallSize, { depth: 11 });
+
+    // Size the panel to fit content with padding
+    const padX = tileSize * 1.5;
+    const padY = tileSize * 1.2;
+    const contentW = Math.max(warning.width, (yes.text.x + yes.text.width / 2) - (no.text.x - no.text.width / 2) + tileSize * 2);
+    const contentH = (yes.text.y + yes.text.height / 2) - (warning.y - warning.height / 2);
+    const minPanelW = tileSize * 10;
+    const minPanelH = tileSize * 5;
+    const panelW = Math.max(minPanelW, contentW + padX * 2);
+    const panelH = Math.max(minPanelH, contentH + padY * 2);
+    const panelX = cx - panelW / 2;
+    const panelY = cy - panelH / 2;
+    const panel = this.add.graphics().setDepth(10);
+    createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, { color: 0x0a0a1a, alpha: 1 });
     no.text.on(Phaser.Input.Events.POINTER_OVER, () => no.text.setColor('#ffffff'));
     no.text.on(Phaser.Input.Events.POINTER_OUT, () => no.text.setColor('#aaccff'));
     no.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
