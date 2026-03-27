@@ -1,4 +1,5 @@
 import CrtShader from '../shaders/CrtShader';
+import { applyCrtToScene } from '../utils/utils';
 
 export class CustomScene extends Phaser.Scene {
   crtShader!: CrtShader;
@@ -10,6 +11,7 @@ export class CustomScene extends Phaser.Scene {
   }
 
   create() {
+    applyCrtToScene(this);
     this.time.delayedCall(1000, () => {
       this.scale.refresh();
     });

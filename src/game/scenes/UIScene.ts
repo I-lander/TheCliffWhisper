@@ -5,6 +5,7 @@ import { MainScene } from './MainScene';
 import { t } from '../i18n/i18n';
 import { AUDIO_KEYS } from '../audio/AudioManager';
 import { createPanelButton } from '../utils/utils';
+import { isTutoDone, markTutoDone } from '../Settings';
 
 export class UIScene extends CustomScene {
   mainScene!: MainScene;
@@ -26,6 +27,12 @@ export class UIScene extends CustomScene {
   // Bottom-left: detailed stats panel
   private statsText!: Phaser.GameObjects.Text;
 
+  // Tutorial
+  private tutoStep1!: Phaser.GameObjects.Text;
+  private tutoStep2!: Phaser.GameObjects.Text;
+  private tutoStep1Done: boolean = false;
+  private tutoStep2Done: boolean = false;
+
   constructor() {
     super('UIScene');
   }
@@ -35,6 +42,7 @@ export class UIScene extends CustomScene {
   }
 
   create() {
+    super.create();
     this.tileSize = this.mainScene.tileSize;
     this.pixelUnit = this.mainScene.pixelUnit;
 
@@ -102,6 +110,36 @@ export class UIScene extends CustomScene {
       .setOrigin(0, 1)
       .setAlpha(0.6);
 
+    // Tutorial hints (only on first ever game)
+    const showTuto = !isTutoDone();
+    const tutoFontSize = Math.round(this.tileSize * 0.45);
+    const cx = screenWidth / 2;
+    const tutoY = this.cameras.main.height * 0.55;
+    this.tutoStep1Done = !showTuto;
+    this.tutoStep2Done = !showTuto;
+
+    this.tutoStep1 = this.add
+      .text(cx, tutoY, t('tuto.step1'), {
+        fontSize: `${tutoFontSize}px`,
+        color: '#aaccff',
+        fontFamily: 'PixelSleigh',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setAlpha(showTuto ? 0.7 : 0)
+      .setVisible(showTuto);
+
+    this.tutoStep2 = this.add
+      .text(cx, tutoY + tutoFontSize * 1.8, t('tuto.step2'), {
+        fontSize: `${tutoFontSize}px`,
+        color: '#aaccff',
+        fontFamily: 'PixelSleigh',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setVisible(false);
+
     // Top-right: menu button
     const menuBtnX = screenWidth - padding - smallFontSize * 4;
     const menuBtnY = padding + smallFontSize * 0.5;
@@ -152,6 +190,29 @@ export class UIScene extends CustomScene {
     } else {
       this.stagnationBarBg.setVisible(false);
       this.stagnationBarFill.setVisible(false);
+    }
+
+    // Tutorial logic (first day only)
+    if (!this.tutoStep1Done && this.gameManager.getDayCount() === 1) {
+      if (this.populationManager.jumped > 0) {
+        this.tutoStep1Done = true;
+        this.tweens.add({ targets: this.tutoStep1, alpha: 0, duration: 500, onComplete: () => this.tutoStep1.setVisible(false) });
+        // Show step 2
+        this.tutoStep2.setVisible(true);
+        this.tweens.add({ targets: this.tutoStep2, alpha: 0.7, duration: 500 });
+      }
+    }
+    if (!this.tutoStep2Done && this.tutoStep1Done) {
+      if (phase !== GamePhase.Daytime || this.gameManager.getDayCount() > 1) {
+        this.tutoStep2Done = true;
+        markTutoDone();
+        this.tweens.add({ targets: this.tutoStep2, alpha: 0, duration: 500, onComplete: () => this.tutoStep2.setVisible(false) });
+      }
+    }
+    // Hide tuto if past day 1
+    if (this.gameManager.getDayCount() > 1 && !this.tutoStep1Done) {
+      this.tutoStep1Done = true;
+      this.tutoStep1.setVisible(false);
     }
 
     const pop = this.populationManager.population;

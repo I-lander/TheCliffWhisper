@@ -1,4 +1,5 @@
 import { AUDIO_KEYS } from '../audio/AudioManager';
+import { loadSettings } from '../Settings';
 
 export class LoadingScene extends Phaser.Scene {
   constructor() {
@@ -54,6 +55,7 @@ export class LoadingScene extends Phaser.Scene {
   }
 
   async create() {
+    loadSettings();
     this.scene.start('MainMenuScene');
   }
 }

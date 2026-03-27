@@ -25,7 +25,7 @@ android {
      if (variant.buildType.name == 'release') {
             variant.outputs.all {
                 def versionName = android.defaultConfig.versionName
-                def newName = "the-cliff-whisperer_${versionName}.apk"
+                def newName = "the-cliff-whisper_${versionName}.apk"
                 outputFileName = newName
             }
         }
@@ -33,7 +33,7 @@ android {
     namespace "io.ionic.starter"
     compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.donkeysisle.thecliffwhisperer"
+        applicationId "com.donkeysisle.thecliffwhisper"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

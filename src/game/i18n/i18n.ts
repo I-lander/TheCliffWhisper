@@ -1,6 +1,6 @@
 export type Language = 'en' | 'fr';
 
-const STORAGE_KEY = 'cliff_whisperer_lang';
+const STORAGE_KEY = 'cliff_whisper_lang';
 
 let currentLang: Language = 'en';
 
@@ -36,7 +36,7 @@ export function t(key: string): string {
 // English translations (default / fallback)
 const EN: Record<string, string> = {
   // Main menu
-  'menu.title': 'The Cliff Whisperer',
+  'menu.title': 'The Cliff Whisper',
   'menu.newGame': 'New Game',
   'menu.continue': 'Continue',
   'menu.quit': 'Quit',
@@ -52,6 +52,15 @@ const EN: Record<string, string> = {
   'pause.mainMenu': 'Main Menu',
   'pause.quitGame': 'Quit Game',
   'pause.saved': 'Game saved!',
+  'pause.confirmLeave': 'Unsaved progress will be lost.\nAre you sure?',
+  'pause.soundOn': 'Sound: ON',
+  'pause.soundOff': 'Sound: OFF',
+  'pause.crtOn': 'CRT: ON',
+  'pause.crtOff': 'CRT: OFF',
+
+  // Tutorial
+  'tuto.step1': 'Click to send humans off the cliff.',
+  'tuto.step2': 'Press "End Day" to unlock the skill tree.',
 
   // HUD
   'hud.day': 'Day',
@@ -360,7 +369,7 @@ const EN: Record<string, string> = {
 // French translations
 const FR: Record<string, string> = {
   // Main menu
-  'menu.title': 'The Cliff Whisperer',
+  'menu.title': 'The Cliff Whisper',
   'menu.newGame': 'Nouvelle Partie',
   'menu.continue': 'Continuer',
   'menu.quit': 'Quitter',
@@ -376,6 +385,15 @@ const FR: Record<string, string> = {
   'pause.mainMenu': 'Menu Principal',
   'pause.quitGame': 'Quitter le Jeu',
   'pause.saved': 'Partie sauvegardee !',
+  'pause.confirmLeave': 'La progression non sauvegardee\nsera perdue. Continuer ?',
+  'pause.soundOn': 'Son : ON',
+  'pause.soundOff': 'Son : OFF',
+  'pause.crtOn': 'CRT : ON',
+  'pause.crtOff': 'CRT : OFF',
+
+  // Tutorial
+  'tuto.step1': 'Cliquez pour envoyer les humains dans le vide.',
+  'tuto.step2': 'Appuyez sur "Fin du Jour" pour debloquer l\'arbre de competences.',
 
   // HUD
   'hud.day': 'Jour',

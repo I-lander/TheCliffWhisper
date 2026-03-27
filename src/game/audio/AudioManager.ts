@@ -1,5 +1,7 @@
+import { isSoundEnabled } from '../Settings';
+
 /**
- * Centralized audio manager for The Cliff Whisperer.
+ * Centralized audio manager for The Cliff Whisper.
  * Handles SFX playback and looping ambience/music.
  */
 export class AudioManager {
@@ -13,6 +15,7 @@ export class AudioManager {
 
   /** Play a one-shot SFX. */
   playSfx(key: string, volume = 0.5, rate = 1) {
+    if (!isSoundEnabled()) return;
     if (!this.scene.cache.audio.exists(key)) return;
     this.scene.sound.play(key, { volume, rate });
   }
@@ -25,6 +28,10 @@ export class AudioManager {
 
   /** Start a looping music/ambience track. Stops current if different. */
   playMusic(key: string, volume = 0.3) {
+    if (!isSoundEnabled()) {
+      this.stopMusic();
+      return;
+    }
     if (this.currentMusicKey === key && this.currentMusic?.isPlaying) return;
     this.stopMusic();
     if (!this.scene.cache.audio.exists(key)) return;

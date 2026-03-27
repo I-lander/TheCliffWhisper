@@ -1,5 +1,5 @@
 {
-  "name": "the-cliff-whisperer",
+  "name": "the-cliff-whisper",
   "private": true,
   "version": "0.0.1",
   "type": "commonjs",
@@ -44,5 +44,5 @@
   "workspaces": [
     "electron"
   ],
-  "description": "The Cliff Whisperer — Idle / Roguelike / Deck Builder"
+  "description": "The Cliff Whisper — Idle / Roguelike / Deck Builder"
 }

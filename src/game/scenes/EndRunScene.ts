@@ -21,6 +21,7 @@ export class EndRunScene extends CustomScene {
   }
 
   create() {
+    super.create();
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
     const tileSize = this.cameras.main.height / 18;

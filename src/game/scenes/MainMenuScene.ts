@@ -1,50 +1,161 @@
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { SaveManager } from '../SaveManager';
-import { removeSplashScreen, createUIPanel, createPanelButton } from '../utils/utils';
+import {
+  removeSplashScreen,
+  createUIPanel,
+  createPanelButton,
+  applyCrtSetting,
+  PanelButton,
+} from '../utils/utils';
 import { t, getLanguage, setLanguage, initLanguage } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS } from '../audio/AudioManager';
 import { CustomScene } from '../customClasses/CustomScene';
+import { isSoundEnabled, toggleSound, isCrtEnabled, toggleCrt } from '../Settings';
+import { DECOR_CATALOG } from '../decor/DecorData';
+import { CloudManager } from '../objects/CloudManager';
+import { createWaveShader } from '../shaders/WaveShader';
+
+// Lightweight menu human — walks back and forth on the cliff
+interface MenuHuman {
+  sprite: Phaser.GameObjects.Image;
+  speed: number;
+  direction: 1 | -1;
+  walkTime: number;
+  baseY: number;
+  baseScaleX: number;
+}
 
 export class MainMenuScene extends CustomScene {
   private confirmGroup: Phaser.GameObjects.GameObject[] = [];
   private audio!: AudioManager;
+
+  // Background scene elements
+  private menuHumans: MenuHuman[] = [];
+  private spawnTimer: number = 0;
+  private maxMenuHumans: number = 5;
+  private cloudManager!: CloudManager;
+  private waveShaderObj!: Phaser.GameObjects.Shader;
+  private waveElapsed: number = 0;
+
+  // Layout
+  private groundY: number = 0;
+  private cliffEdgeX: number = 0;
+  private ts: number = 0;
 
   constructor() {
     super('MainMenuScene');
   }
 
   create() {
+    super.create();
     initLanguage();
     this.audio = new AudioManager(this);
     this.audio.playMusic(AUDIO_KEYS.MENU_THEME, 0.25);
     removeSplashScreen(this);
-    const cx = this.cameras.main.width / 2;
-    const cy = this.cameras.main.height / 2;
-    const tileSize = this.cameras.main.height / 18;
-    const titleSize = Math.round(tileSize * 1.4);
-    const btnSize = Math.round(tileSize * 0.6);
 
-    this.cameras.main.setBackgroundColor(0x050510);
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+    const cx = w / 2;
+    this.ts = h / 18;
+    const scale = this.ts / 16;
 
-    // Title
+    this.groundY =  h * 0.4;
+    this.cliffEdgeX = w  * 0.75;
+
+    // ── Background sky ──
+    this.cameras.main.setBackgroundColor(0x424f66);
+
+    // ── Cliff body + edge (same as MainScene.drawCliffEdge) ──
+    const cliffDepth = 2;
+    const cliffGfx = this.add.graphics().setDepth(cliffDepth);
+    cliffGfx.fillStyle(0x222222);
+    cliffGfx.fillRect(-this.cliffEdgeX, this.groundY, this.cliffEdgeX * 2 - this.ts, h - this.groundY);
+
+    const faceFrame = 15 * 16 + 1;
+    const cornerFrame = 15 * 16 + 2;
+
+    // Corner at top-right of cliff
+    this.add.image(this.cliffEdgeX, this.groundY, 'worldElement', cornerFrame)
+      .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+
+    // Vertical face going down
+    for (let ty = this.groundY + this.ts; ty < h; ty += this.ts) {
+      this.add.image(this.cliffEdgeX, ty, 'worldElement', faceFrame)
+        .setOrigin(1, 0).setScale(scale).setDepth(cliffDepth);
+    }
+
+    // ── Scatter decor elements on the cliff surface ──
+    const decorSlots = Math.floor(this.cliffEdgeX / this.ts);
+    const decorCount = Math.min(decorSlots - 2, 8 + Math.floor(Math.random() * 4));
+    const usedSlots = new Set<number>();
+    for (let i = 0; i < decorCount; i++) {
+      let slot: number;
+      do {
+        slot = 1 + Math.floor(Math.random() * (decorSlots - 2));
+      } while (usedSlots.has(slot));
+      usedSlots.add(slot);
+      const def = DECOR_CATALOG[Math.floor(Math.random() * DECOR_CATALOG.length)];
+      const dx = slot * this.ts;
+      const dy = this.groundY - this.ts;
+      this.add
+        .image(dx, dy, 'worldElement', def.frameIndex)
+        .setOrigin(0, 0)
+        .setScale(scale)
+        .setDepth(4)
+        .setAlpha(0.8);
+    }
+
+    // ── Clouds ──
+    this.cloudManager = new CloudManager(this, this.ts);
+
+    // ── Waves ──
+    const SPRITE_BASE_UNIT = 16;
+    const waveTopY = h * 0.75;
+    const waveWorldH = h - waveTopY;
+    const waveWorldW = w;
+    const waveCenterX = w / 2;
+    const waveCenterY = waveTopY + waveWorldH / 2;
+    const waveCanvasW = Math.round((waveWorldW / this.ts) * SPRITE_BASE_UNIT);
+    const waveCanvasH = Math.round((waveWorldH / this.ts) * SPRITE_BASE_UNIT);
+    const wavePixelToWorld = this.ts / SPRITE_BASE_UNIT;
+    const waveScale = waveWorldW / waveCanvasW;
+
+    this.waveShaderObj = this.add
+      .shader(createWaveShader(), waveCenterX, waveCenterY, waveCanvasW, waveCanvasH)
+      .setScale(waveScale)
+      .setDepth(5);
+    this.waveShaderObj.setUniform('pixelToWorld.value', wavePixelToWorld);
+    this.waveShaderObj.setUniform('canvasSizeX.value', waveCanvasW);
+    this.waveShaderObj.setUniform('canvasSizeY.value', waveCanvasH);
+    this.waveElapsed = 0;
+
+    // ── UI layer (depth 7+) ──
+    const titleSize = Math.round(this.ts * 1.4);
+    const btnSize = Math.round(this.ts * 0.6);
+    const smallBtnSize = Math.round(this.ts * 0.45);
+
+    // Title — above the cliff
     this.add
-      .text(cx, cy - tileSize * 4, t('menu.title'), {
+      .text(cx, this.groundY - this.ts * 2.5, t('menu.title'), {
         fontSize: `${titleSize}px`,
         color: '#ffffff',
         fontFamily: 'PixelSleigh',
       })
       .setOrigin(0.5)
-      .setAlpha(0.9);
+      .setAlpha(0.95)
+      .setDepth(7);
 
-    // Language toggle button (top-right)
+    // Language toggle (top-right)
     const currentLang = getLanguage();
-    const flagScale = (tileSize * 1.2) / this.textures.get(`flag_${currentLang}`).getSourceImage().width;
+    const flagScale =
+      (this.ts * 1.2) / this.textures.get(`flag_${currentLang}`).getSourceImage().width;
     const langBtn = this.add
-      .image(this.cameras.main.width - tileSize * 0.5, tileSize * 0.5, `flag_${currentLang}`)
+      .image(w - this.ts * 0.5, this.ts * 0.5, `flag_${currentLang}`)
       .setOrigin(1, 0)
       .setScale(flagScale)
       .setAlpha(0.7)
+      .setDepth(7)
       .setInteractive({ useHandCursor: true });
 
     langBtn.on(Phaser.Input.Events.POINTER_OVER, () => langBtn.setAlpha(1));
@@ -55,29 +166,22 @@ export class MainMenuScene extends CustomScene {
       this.scene.restart();
     });
 
-    // New Game button
-    const newGame = createPanelButton(this, cx, cy + tileSize * 0.5, t('menu.newGame'), btnSize);
-    newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => { newGame.text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-    newGame.text.on(Phaser.Input.Events.POINTER_OUT, () => newGame.text.setColor('#aaccff'));
-    newGame.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
-      this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
-      if (SaveManager.hasSave()) {
-        this.showNewGameConfirm(cx, cy, tileSize);
-      } else {
-        this.startGame();
-      }
-    });
-
-    // Continue button
+    // ── Buttons — below cliff ──
     const hasSave = SaveManager.hasSave();
-    const continueBtn = createPanelButton(this, cx, cy + tileSize * 2, t('menu.continue'), btnSize, {
-      color: hasSave ? '#aaccff' : '#333344',
-      panelAlpha: hasSave ? 0.5 : 0.15,
-    });
+    const btnZoneTop = this.groundY + this.ts * 2;
+    const btnZoneMid = btnZoneTop + this.ts * 1.5;
 
     if (hasSave) {
-      continueBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => { continueBtn.text.setColor('#ffffff'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
-      continueBtn.text.on(Phaser.Input.Events.POINTER_OUT, () => continueBtn.text.setColor('#aaccff'));
+      const continueBtn = createPanelButton(this, cx, btnZoneTop, t('menu.continue'), btnSize, {
+        depth: 7,
+      });
+      continueBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => {
+        continueBtn.text.setColor('#ffffff');
+        this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15);
+      });
+      continueBtn.text.on(Phaser.Input.Events.POINTER_OUT, () =>
+        continueBtn.text.setColor('#aaccff'),
+      );
       continueBtn.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
         this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
         this.startGame(true);
@@ -86,24 +190,65 @@ export class MainMenuScene extends CustomScene {
       const ts = SaveManager.getSaveTimestamp();
       if (ts) {
         const date = new Date(ts);
-        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr =
+          date.toLocaleDateString() +
+          ' ' +
+          date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         this.add
-          .text(cx, cy + tileSize * 2.8, dateStr, {
-            fontSize: `${Math.round(tileSize * 0.35)}px`,
-            color: '#444466',
+          .text(cx, btnZoneTop + this.ts * 0.8, dateStr, {
+            fontSize: `${Math.round(this.ts * 0.35)}px`,
+            color: '#556688',
             fontFamily: 'PixelSleigh',
           })
-          .setOrigin(0.5);
+          .setOrigin(0.5)
+          .setDepth(7);
       }
+
+      const newGame = createPanelButton(
+        this,
+        cx,
+        btnZoneTop + this.ts * 1.8,
+        t('menu.newGame'),
+        smallBtnSize,
+        {
+          color: '#666688',
+          depth: 7,
+        },
+      );
+      newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => {
+        newGame.text.setColor('#ffffff');
+        this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15);
+      });
+      newGame.text.on(Phaser.Input.Events.POINTER_OUT, () => newGame.text.setColor('#666688'));
+      newGame.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
+        this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
+        this.showNewGameConfirm(cx, btnZoneMid, this.ts);
+      });
     } else {
-      continueBtn.text.disableInteractive();
+      const newGame = createPanelButton(this, cx, btnZoneTop, t('menu.newGame'), btnSize, {
+        depth: 7,
+      });
+      newGame.text.on(Phaser.Input.Events.POINTER_OVER, () => {
+        newGame.text.setColor('#ffffff');
+        this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15);
+      });
+      newGame.text.on(Phaser.Input.Events.POINTER_OUT, () => newGame.text.setColor('#aaccff'));
+      newGame.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
+        this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
+        this.startGame();
+      });
     }
 
     // Quit button
-    const quit = createPanelButton(this, cx, cy + tileSize * 3.5, t('menu.quit'), btnSize, {
+    const quitY = btnZoneTop + (hasSave ? this.ts * 3 : this.ts * 1.8);
+    const quit = createPanelButton(this, cx, quitY, t('menu.quit'), smallBtnSize, {
       color: '#666688',
+      depth: 7,
     });
-    quit.text.on(Phaser.Input.Events.POINTER_OVER, () => { quit.text.setColor('#ff6666'); this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15); });
+    quit.text.on(Phaser.Input.Events.POINTER_OVER, () => {
+      quit.text.setColor('#ff6666');
+      this.audio.playSfx(AUDIO_KEYS.UI_HOVER, 0.15);
+    });
     quit.text.on(Phaser.Input.Events.POINTER_OUT, () => quit.text.setColor('#666688'));
     quit.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
       this.audio.playSfx(AUDIO_KEYS.UI_CLICK, 0.4);
@@ -113,6 +258,131 @@ export class MainMenuScene extends CustomScene {
         window.electron.quitApp();
       }
     });
+
+    // Settings toggles (bottom)
+    const toggleSize = Math.round(this.ts * 0.4);
+    const toggleY = h - this.ts * 1.5;
+
+    const soundBtn = createPanelButton(
+      this,
+      cx - this.ts * 3,
+      toggleY,
+      isSoundEnabled() ? t('pause.soundOn') : t('pause.soundOff'),
+      toggleSize,
+      {
+        color: isSoundEnabled() ? '#aaccff' : '#666688',
+        depth: 7,
+      },
+    );
+    soundBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => soundBtn.text.setColor('#ffffff'));
+    soundBtn.text.on(Phaser.Input.Events.POINTER_OUT, () =>
+      soundBtn.text.setColor(isSoundEnabled() ? '#aaccff' : '#666688'),
+    );
+    soundBtn.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      const enabled = toggleSound();
+      soundBtn.text.setText(enabled ? t('pause.soundOn') : t('pause.soundOff'));
+      soundBtn.text.setColor(enabled ? '#aaccff' : '#666688');
+      if (!enabled) {
+        this.sound.stopAll();
+      } else {
+        this.audio.playMusic(AUDIO_KEYS.MENU_THEME, 0.25);
+      }
+      this.rebuildTogglePanel(soundBtn);
+    });
+
+    const crtBtn = createPanelButton(
+      this,
+      cx + this.ts * 3,
+      toggleY,
+      isCrtEnabled() ? t('pause.crtOn') : t('pause.crtOff'),
+      toggleSize,
+      {
+        color: isCrtEnabled() ? '#aaccff' : '#666688',
+        depth: 7,
+      },
+    );
+    crtBtn.text.on(Phaser.Input.Events.POINTER_OVER, () => crtBtn.text.setColor('#ffffff'));
+    crtBtn.text.on(Phaser.Input.Events.POINTER_OUT, () =>
+      crtBtn.text.setColor(isCrtEnabled() ? '#aaccff' : '#666688'),
+    );
+    crtBtn.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
+      const enabled = toggleCrt();
+      crtBtn.text.setText(enabled ? t('pause.crtOn') : t('pause.crtOff'));
+      crtBtn.text.setColor(enabled ? '#aaccff' : '#666688');
+      applyCrtSetting(this);
+      this.rebuildTogglePanel(crtBtn);
+    });
+
+    // Humans spawn off-screen left and walk in
+    this.menuHumans = [];
+    this.spawnTimer = 0;
+  }
+
+  update(_time: number, delta: number) {
+    const dt = delta / 1000;
+
+    // Clouds
+    this.cloudManager.update(delta);
+
+    // Waves
+    this.waveElapsed += delta;
+    this.waveShaderObj.setUniform('elapsedTime.value', this.waveElapsed);
+
+    // Spawn humans off-screen periodically
+    this.spawnTimer -= delta;
+    if (this.spawnTimer <= 0 && this.menuHumans.length < this.maxMenuHumans) {
+      this.spawnMenuHuman();
+      this.spawnTimer = 2000 + Math.random() * 4000;
+    }
+
+    // Update humans — walk back and forth
+    for (const mh of this.menuHumans) {
+      mh.sprite.x += mh.speed * mh.direction * dt;
+      mh.walkTime += dt * (10 + mh.speed / 30);
+      mh.sprite.y = mh.baseY + Math.sin(mh.walkTime) * 0.8;
+      mh.sprite.setRotation(Math.sin(mh.walkTime * 0.5) * 0.08);
+
+      // Turn around at cliff edge or left side
+      if (mh.direction === 1 && mh.sprite.x >= this.cliffEdgeX - this.ts) {
+        mh.direction = -1;
+        mh.sprite.setScale(-mh.baseScaleX, mh.sprite.scaleY);
+      } else if (mh.direction === -1 && mh.sprite.x <= this.ts) {
+        mh.direction = 1;
+        mh.sprite.setScale(mh.baseScaleX, mh.sprite.scaleY);
+      }
+    }
+  }
+
+  private spawnMenuHuman() {
+    const spriteScale = this.cameras.main.height / 18 / 16;
+    const sprite = this.add
+      .image(-this.ts, this.groundY, 'human')
+      .setScale(spriteScale)
+      .setOrigin(0.5, 1)
+      .setDepth(4)
+      .setAlpha(0.7);
+
+    const speed = 30 + Math.random() * 50;
+    this.menuHumans.push({
+      sprite,
+      speed,
+      direction: 1,
+      walkTime: Math.random() * Math.PI * 2,
+      baseY: this.groundY,
+      baseScaleX: spriteScale,
+    });
+  }
+
+  private rebuildTogglePanel(pb: PanelButton) {
+    const pu = this.ts / 16;
+    const padX = this.ts * 0.6;
+    const padY = this.ts * 0.25;
+    pb.bg.clear();
+    const btnW = pb.text.width + padX * 2;
+    const btnH = pb.text.height + padY * 2;
+    const btnX = pb.text.x - btnW / 2;
+    const btnY = pb.text.y - btnH / 2;
+    createUIPanel(pb.bg, btnX, btnY, btnW, btnH, pu, 0x4466aa, 0.5);
   }
 
   private showNewGameConfirm(cx: number, cy: number, tileSize: number) {
@@ -131,7 +401,10 @@ export class MainMenuScene extends CustomScene {
     const panelY = cy - tileSize * 0.3 - panelH / 2;
     const lineWidth = Math.round(tileSize * 0.06);
     const panel = this.add.graphics().setDepth(10);
-    createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, { color: 0x0a0a1a, alpha: 1 });
+    createUIPanel(panel, panelX, panelY, panelW, panelH, lineWidth, 0x334466, 1, {
+      color: 0x0a0a1a,
+      alpha: 1,
+    });
 
     const warning = this.add
       .text(cx, cy - tileSize * 1.5, t('menu.confirmLose'), {
@@ -143,7 +416,14 @@ export class MainMenuScene extends CustomScene {
       .setOrigin(0.5)
       .setDepth(11);
 
-    const yes = createPanelButton(this, cx - tileSize * 2, cy + tileSize * 0.5, t('menu.yes'), smallSize, { depth: 11 });
+    const yes = createPanelButton(
+      this,
+      cx - tileSize * 2,
+      cy + tileSize * 0.5,
+      t('menu.yes'),
+      smallSize,
+      { depth: 11 },
+    );
     yes.text.on(Phaser.Input.Events.POINTER_OVER, () => yes.text.setColor('#ffffff'));
     yes.text.on(Phaser.Input.Events.POINTER_OUT, () => yes.text.setColor('#aaccff'));
     yes.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -152,7 +432,14 @@ export class MainMenuScene extends CustomScene {
       this.startGame();
     });
 
-    const no = createPanelButton(this, cx + tileSize * 2, cy + tileSize * 0.5, t('menu.no'), smallSize, { depth: 11 });
+    const no = createPanelButton(
+      this,
+      cx + tileSize * 2,
+      cy + tileSize * 0.5,
+      t('menu.no'),
+      smallSize,
+      { depth: 11 },
+    );
     no.text.on(Phaser.Input.Events.POINTER_OVER, () => no.text.setColor('#ffffff'));
     no.text.on(Phaser.Input.Events.POINTER_OUT, () => no.text.setColor('#aaccff'));
     no.text.on(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -172,6 +459,7 @@ export class MainMenuScene extends CustomScene {
 
   private startGame(loadSave = false) {
     this.audio.stopMusic();
+    this.cloudManager.destroy();
     this.scene.start('MainScene', { loadSave });
     this.scene.start('UIScene');
     this.scene.bringToTop('UIScene');

@@ -2,7 +2,7 @@ import { GamePhase } from './GameManager';
 import { PopulationStats } from './PopulationManager';
 import { ConstellationBonuses, DEFAULT_BONUSES } from './constellations/ConstellationData';
 
-const SAVE_KEY = 'cliff_whisperer_save';
+const SAVE_KEY = 'cliff_whisper_save';
 
 export interface SaveData {
   version: number;

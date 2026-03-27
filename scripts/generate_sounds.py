@@ -1,5 +1,5 @@
 """
-Sound Generator for The Cliff Whisperer
+Sound Generator for The Cliff Whisper
 Generates all game audio using numpy + wave (no external deps beyond numpy).
 Theme: dark, ethereal, haunting, hypnotic.
 """
@@ -10,11 +10,16 @@ import struct
 import os
 
 SAMPLE_RATE = 44100
-OUTPUT_SFX = os.path.join(os.path.dirname(__file__), "..", "public", "assets", "audio", "sfx")
-OUTPUT_MUSIC = os.path.join(os.path.dirname(__file__), "..", "public", "assets", "audio", "music")
+OUTPUT_SFX = os.path.join(
+    os.path.dirname(__file__), "..", "public", "assets", "audio", "sfx"
+)
+OUTPUT_MUSIC = os.path.join(
+    os.path.dirname(__file__), "..", "public", "assets", "audio", "music"
+)
 
 
 # ─── UTILS ────────────────────────────────────────────────────────────────────
+
 
 def save_wav(filename, samples, subfolder="sfx"):
     """Save float samples [-1, 1] as 16-bit WAV."""
@@ -64,13 +69,13 @@ def envelope(samples, attack=0.01, decay=0.0, sustain=1.0, release=0.05):
         env[:a] = np.linspace(0, 1, a)
     # Decay
     if d > 0 and a + d < n:
-        env[a:a+d] = np.linspace(1, sustain, d)
+        env[a : a + d] = np.linspace(1, sustain, d)
     # Sustain
     if a + d < n - r:
-        env[a+d:n-r] = sustain
+        env[a + d : n - r] = sustain
     # Release
     if r > 0:
-        env[n-r:] = np.linspace(sustain, 0, r)
+        env[n - r :] = np.linspace(sustain, 0, r)
     return samples * env
 
 
@@ -92,7 +97,7 @@ def reverb(samples, delay_ms=80, decay=0.3, repeats=4):
     delay_samples = int(delay_ms * SAMPLE_RATE / 1000)
     for i in range(1, repeats + 1):
         offset = delay_samples * i
-        gain = decay ** i
+        gain = decay**i
         if offset < len(out):
             end = min(len(out), len(samples) + offset)
             src_end = end - offset
@@ -114,7 +119,7 @@ def mix(*signals, levels=None):
         levels = [1.0 / len(signals)] * len(signals)
     out = np.zeros(len(signals[0]))
     for s, l in zip(signals, levels):
-        out[:len(s)] += s[:len(out)] * l
+        out[: len(s)] += s[: len(out)] * l
     return np.clip(out, -1, 1)
 
 
@@ -135,10 +140,11 @@ def lowpass_simple(samples, cutoff_ratio=0.1):
     """Very simple lowpass via moving average."""
     n = max(1, int(1 / cutoff_ratio))
     kernel = np.ones(n) / n
-    return np.convolve(samples, kernel, mode='same')
+    return np.convolve(samples, kernel, mode="same")
 
 
 # ─── SFX: HUMAN ACTIONS ──────────────────────────────────────────────────────
+
 
 def gen_human_spawn():
     """Ethereal whoosh when human is summoned."""
@@ -205,6 +211,7 @@ def gen_soul_rise():
 
 # ─── SFX: ABILITIES ──────────────────────────────────────────────────────────
 
+
 def gen_ability_frenzy():
     """Frenzy Pulse — energetic pulse, adrenaline rush."""
     dur = 0.7
@@ -243,7 +250,7 @@ def gen_ability_darkwave():
         freq = 600 + i * 150
         ping = envelope(sine(freq, 0.15) * 0.15, attack=0.005, release=0.1)
         end = min(offset + len(ping), len(pings))
-        pings[offset:end] += ping[:end - offset]
+        pings[offset:end] += ping[: end - offset]
     out = pad_to(boom, dur) + pings
     save_wav("ability_darkwave.wav", reverb(out, 60, 0.25))
 
@@ -258,7 +265,7 @@ def gen_ability_harvest():
         offset = int(i * 0.15 * SAMPLE_RATE)
         note = envelope(sine(freq, 0.4) * 0.2, attack=0.01, release=0.2)
         end = min(offset + len(note), len(out))
-        out[offset:end] += note[:end - offset]
+        out[offset:end] += note[: end - offset]
     # Shimmer overlay
     shimmer = sine(1760, dur) * 0.08 * (0.5 + 0.5 * sine(5, dur))
     shimmer = envelope(shimmer, attack=0.2, release=0.3)
@@ -276,7 +283,7 @@ def gen_ability_silence():
     env = np.zeros(len(n))
     swell = int(0.4 * SAMPLE_RATE)
     env[:swell] = np.linspace(0, 1, swell)
-    env[swell:swell+500] = np.linspace(1, 0, 500)
+    env[swell : swell + 500] = np.linspace(1, 0, 500)
     # Very quiet residual hum
     hum = sine(60, dur) * 0.05
     hum = envelope(hum, attack=0.4, release=0.3)
@@ -285,6 +292,7 @@ def gen_ability_silence():
 
 
 # ─── SFX: PHASE TRANSITIONS ──────────────────────────────────────────────────
+
 
 def gen_phase_night():
     """Transition to night — mysterious descending wash."""
@@ -331,6 +339,7 @@ def gen_phase_sunset():
 
 # ─── SFX: SKILL TREE ─────────────────────────────────────────────────────────
 
+
 def gen_node_hover():
     """Subtle ping on skill node hover."""
     dur = 0.15
@@ -345,14 +354,14 @@ def gen_node_unlock():
     # Base chime
     s1 = sine(880, dur) * 0.25
     s2 = sine(1320, dur) * 0.15  # Perfect fifth
-    s3 = sine(1760, dur) * 0.1   # Octave
+    s3 = sine(1760, dur) * 0.1  # Octave
     chime = s1 + s2 + s3
     chime = envelope(chime, attack=0.01, decay=0.1, sustain=0.6, release=0.3)
     # Sparkle
     sparkle = sine(3520, 0.3) * 0.08
     sparkle = envelope(sparkle, attack=0.01, release=0.2)
     out = pad_to(chime, dur)
-    out[:len(sparkle)] += sparkle
+    out[: len(sparkle)] += sparkle
     save_wav("node_unlock.wav", reverb(out, 60, 0.25))
 
 
@@ -365,6 +374,7 @@ def gen_node_locked():
 
 
 # ─── SFX: UI ─────────────────────────────────────────────────────────────────
+
 
 def gen_ui_click():
     """Generic button click."""
@@ -411,6 +421,7 @@ def gen_save_confirm():
 
 
 # ─── SFX: DECORATIONS ────────────────────────────────────────────────────────
+
 
 def gen_deco_house():
     """House placement — domestic wooden creak."""
@@ -487,11 +498,12 @@ def gen_deco_wall():
 
 # ─── SFX: GAME EVENTS ────────────────────────────────────────────────────────
 
+
 def gen_victory():
     """Victory — The silence. Haunting final chord."""
     dur = 3.0
     # Ethereal ascending chord resolving to silence
-    s1 = sine(220, dur) * 0.2   # A3
+    s1 = sine(220, dur) * 0.2  # A3
     s2 = sine(330, dur) * 0.15  # E4
     s3 = sine(440, dur) * 0.12  # A4
     s4 = sine(554, dur) * 0.08  # C#5
@@ -538,6 +550,7 @@ def gen_population_birth():
 
 # ─── AMBIENCE / MUSIC ────────────────────────────────────────────────────────
 
+
 def gen_ambience_night():
     """Night phase ambient loop — dark, ethereal, crickets, wind. 15s loop."""
     dur = 15.0
@@ -561,7 +574,7 @@ def gen_ambience_night():
         start = int((i * 0.5 + np.random.uniform(0, 0.2)) * SAMPLE_RATE)
         chirp_len = int(0.08 * SAMPLE_RATE)
         if start + chirp_len < len(cricket_gate):
-            cricket_gate[start:start + chirp_len] = 1
+            cricket_gate[start : start + chirp_len] = 1
     cricket *= cricket_gate
 
     # Ethereal pad (very quiet high harmonics)
@@ -611,10 +624,10 @@ def gen_menu_theme():
     tt = t(dur)
 
     # Haunting pad (Am chord voiced wide)
-    s_a = sine(110, dur) * 0.1    # A2
+    s_a = sine(110, dur) * 0.1  # A2
     s_e = sine(164.8, dur) * 0.07  # E3
     s_c = sine(261.6, dur) * 0.06  # C4
-    s_a2 = sine(440, dur) * 0.04   # A4
+    s_a2 = sine(440, dur) * 0.04  # A4
     pad = s_a + s_e + s_c + s_a2
     # Slow breathe modulation
     pad *= 0.6 + 0.4 * np.sin(2 * np.pi * 0.05 * tt)
@@ -630,10 +643,12 @@ def gen_menu_theme():
     for repeat in range(3):
         for i, freq in enumerate(motif_notes):
             offset = int((repeat * 6 + 2 + i * 1.2) * SAMPLE_RATE)
-            note = envelope(sine(freq, 1.0) * 0.06, attack=0.05, decay=0.2, sustain=0.4, release=0.5)
+            note = envelope(
+                sine(freq, 1.0) * 0.06, attack=0.05, decay=0.2, sustain=0.4, release=0.5
+            )
             end = min(offset + len(note), len(motif))
             if offset < len(motif):
-                motif[offset:end] += note[:end - offset]
+                motif[offset:end] += note[: end - offset]
 
     out = pad + wind + motif
     out = fade_in(out, 1.0)
@@ -642,6 +657,7 @@ def gen_menu_theme():
 
 
 # ─── SFX: CLICK FEEDBACK ─────────────────────────────────────────────────────
+
 
 def gen_click_spawn():
     """Player click to spawn human — tactile click + ethereal tail."""
@@ -667,7 +683,7 @@ def gen_cooldown_ready():
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("🎵 Generating sounds for The Cliff Whisperer...\n")
+    print("🎵 Generating sounds for The Cliff Whisper...\n")
 
     print("── Human Actions ──")
     gen_human_spawn()

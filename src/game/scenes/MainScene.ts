@@ -12,7 +12,7 @@ import { UIScene } from './UIScene';
 import { SaveManager } from '../SaveManager';
 import { t } from '../i18n/i18n';
 import { AudioManager, AUDIO_KEYS, ABILITY_AUDIO, DECO_AUDIO } from '../audio/AudioManager';
-import { createUIPanel, initShader, clearShader } from '../utils/utils';
+import { createUIPanel } from '../utils/utils';
 import { CloudManager } from '../objects/CloudManager';
 import { createWaveShader } from '../shaders/WaveShader';
 
@@ -206,11 +206,6 @@ export class MainScene extends CustomScene {
     this.waveShaderObj.setUniform('canvasSizeX.value', this.waveCanvasW);
     this.waveShaderObj.setUniform('canvasSizeY.value', this.waveCanvasH);
 
-    // CRT post-processing on all scenes
-    clearShader(this);
-    initShader(this);
-    this.updateShader();
-
     // Audio
     this.audio = new AudioManager(this);
     this.audio.playMusic(AUDIO_KEYS.AMBIENCE_DAY, 0.2);
@@ -276,9 +271,10 @@ export class MainScene extends CustomScene {
         this.clickCooldownTimer = 0;
         this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
-        this.autoSave();
+        this.autoSave(); // Save at end of night
       }
       if (phase === GamePhase.Sunset) {
+        this.autoSave(); // Save at end of day
         this.forceAllTurnBack();
         // Restore birthratePerSec if Silence was active
         if (this.savedBirthratePerSec > 0) {
@@ -675,6 +671,7 @@ export class MainScene extends CustomScene {
     this.gameManager.pause();
     this.audio.stopMusic();
     this.audio.playSfx(result === 'victory' ? AUDIO_KEYS.VICTORY : AUDIO_KEYS.DEFEAT, 0.5);
+    SaveManager.deleteSave();
     this.scene.launch('EndRunScene', {
       result,
       dayCount: this.gameManager.getDayCount(),

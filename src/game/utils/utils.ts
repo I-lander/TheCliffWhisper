@@ -1,5 +1,6 @@
 import { CustomScene } from '../customClasses/CustomScene';
 import CrtShader from '../shaders/CrtShader';
+import { isCrtEnabled } from '../Settings';
 
 export const SPRITE_BASE_UNIT = 16;
 export const FRONT_DEPTH = 1000000;
@@ -216,6 +217,7 @@ export function createPanelButton(
 }
 
 export function initShader(scene: Phaser.Scene) {
+  if (!isCrtEnabled()) return;
   scene.scene.manager.scenes.forEach((s) => {
     const key = s.scene.key;
 
@@ -242,6 +244,32 @@ export function clearShader(scene: Phaser.Scene) {
       if (s.cameras.main) {
         s.cameras.main.removePostPipeline('CrtShader');
       }
+    }
+  });
+}
+
+/** Apply CRT to a single scene based on the current setting. */
+export function applyCrtToScene(scene: Phaser.Scene) {
+  if (!scene.cameras?.main) return;
+  const enabled = isCrtEnabled();
+  scene.cameras.main.removePostPipeline('CrtShader');
+  if (enabled) {
+    const renderer = scene.renderer as Phaser.Renderer.WebGL.WebGLRenderer;
+    renderer.pipelines.addPostPipeline('CrtShader', CrtShader);
+    scene.cameras.main.setPostPipeline('CrtShader');
+    const pipelineInstance = scene.cameras.main.getPostPipeline('CrtShader') as CrtShader;
+    if (pipelineInstance) {
+      (scene as CustomScene).crtShader = pipelineInstance;
+      (scene as CustomScene).updateShader();
+    }
+  }
+}
+
+/** Apply CRT setting to all active scenes. */
+export function applyCrtSetting(scene: Phaser.Scene) {
+  scene.scene.manager.scenes.forEach((s) => {
+    if (s.scene.key !== 'LoadingScene') {
+      applyCrtToScene(s);
     }
   });
 }
