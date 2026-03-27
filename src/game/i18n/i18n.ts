@@ -74,7 +74,7 @@ const EN: Record<string, string> = {
   // Stats panel (bottom-left)
   'stats.walkSpeed': 'Walk Speed',
   'stats.turnBackRate': 'Turn Back',
-  'stats.dragRate': 'Drag Chance',
+  'stats.dragRate': 'Contagion',
   'stats.clickCooldown': 'Click Delay',
   'stats.autoClickers': 'Auto Clickers',
   'stats.soulMult': 'Soul Bonus',
@@ -85,7 +85,7 @@ const EN: Record<string, string> = {
   // Stats tooltips
   'tip.walkSpeed': 'How fast humans walk toward the cliff edge.',
   'tip.turnBackRate': 'Chance a human turns back before jumping.',
-  'tip.dragRate': 'Chance a returning human convinces another to turn back.',
+  'tip.dragRate': 'Chance a walking human re-converts a returning one toward the cliff.',
   'tip.clickCooldown': 'Minimum time between two clicks (yours + auto).',
   'tip.autoClickers': 'Spirits that automatically push humans off the cliff.',
   'tip.soulMult': 'Multiplier applied to souls gained per death.',
@@ -422,7 +422,7 @@ const FR: Record<string, string> = {
   // Stats panel (bottom-left)
   'stats.walkSpeed': 'Vitesse Marche',
   'stats.turnBackRate': 'Taux Demi-tour',
-  'stats.dragRate': 'Entrainement',
+  'stats.dragRate': 'Contagion',
   'stats.clickCooldown': 'Delai Clic',
   'stats.autoClickers': 'Auto Cliqueurs',
   'stats.soulMult': 'Bonus Ames',
@@ -433,7 +433,7 @@ const FR: Record<string, string> = {
   // Stats tooltips
   'tip.walkSpeed': 'Vitesse de marche des humains vers le bord.',
   'tip.turnBackRate': 'Chance qu\'un humain fasse demi-tour avant de sauter.',
-  'tip.dragRate': 'Chance qu\'un humain qui revient en convainque un autre.',
+  'tip.dragRate': 'Chance qu\'un humain en marche reconvertisse un fuyard vers le gouffre.',
   'tip.clickCooldown': 'Temps minimum entre deux clics (joueur + auto).',
   'tip.autoClickers': 'Esprits qui poussent automatiquement les humains.',
   'tip.soulMult': 'Multiplicateur d\'ames gagnees par mort.',

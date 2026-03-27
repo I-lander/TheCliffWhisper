@@ -15,11 +15,6 @@ export class ConstellationManager {
     this.stats = stats;
   }
 
-  /** Called each time a human dies — grants souls based on multiplier. Always integer. */
-  onHumanKilled() {
-    this.souls += Math.floor(this.bonuses.soulMultiplier);
-  }
-
   getTrees(): SkillTree[] {
     return this.trees;
   }

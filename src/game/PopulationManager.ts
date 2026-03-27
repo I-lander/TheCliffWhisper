@@ -5,9 +5,9 @@ export const TURN_BACK_MAX = 0.80;
 export const STAGNATION_LIMIT_MS = 30_000;
 
 export interface PopulationStats {
-  walkSpeed: number; // pixels per second (base: 120)
-  turnBackRate: number; // 0-1 probability (base: 0.30)
-  dragRate: number; // 0-1 chance a turning-back human causes another to turn back when crossing (base: 0.05)
+  walkSpeed: number; // pixels per second (base: 100)
+  turnBackRate: number; // 0-1 probability (base: 0.25)
+  dragRate: number; // 0-1 chance a walking human re-converts a turning-back human when crossing (base: 0.05)
   birthRate: number; // integer — humans added per day at sunset (base: 15)
   birthratePerSec: number; // integer — humans spawned per second during day (base: 0)
   clickCooldown: number; // ms between clicks, shared player + auto-clickers (base: 1000)
@@ -15,12 +15,12 @@ export interface PopulationStats {
 }
 
 const BASE_STATS: PopulationStats = {
-  walkSpeed: 120,
-  turnBackRate: 0.20,
+  walkSpeed: 100,
+  turnBackRate: 0.25,
   dragRate: 0.05,
   birthRate: 15,
   birthratePerSec: 0,
-  clickCooldown: 1000,
+  clickCooldown: 900,
   deathMultiplier: 1,
 };
 
@@ -89,6 +89,7 @@ export class PopulationManager {
     return Math.random() < this.getEffectiveTurnBackRate();
   }
 
+  /** Contagion: chance a walking human re-converts a turning-back human toward the cliff. */
   shouldDragTurnBack(): boolean {
     return Math.random() < this.stats.dragRate;
   }

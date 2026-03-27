@@ -29,11 +29,11 @@ export const DECOR_CATALOG: DecorDef[] = [
     apply: (s) => { s.turnBackRate += 0.03; },
     unapply: (s) => { s.turnBackRate -= 0.03; } },
 
-  // ── Lighthouse — Walk speed -10% (was -15%) ──
+  // ── Lighthouse — Walk speed -6% ──
   { id: 'lighthouse', name: 'Lighthouse', frameIndex: frame(1, 2),
-    description: 'Walk speed -10%',
-    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.90)); },
-    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.90); } },
+    description: 'Walk speed -6%',
+    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.94)); },
+    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.94); } },
 
   // ── Tree — birthratePerSec +1/s (unchanged) ──
   { id: 'tree', name: 'Tree', frameIndex: frame(0, 0),
@@ -47,11 +47,11 @@ export const DECOR_CATALOG: DecorDef[] = [
     apply: (s) => { s.turnBackRate += 0.02; },
     unapply: (s) => { s.turnBackRate -= 0.02; } },
 
-  // ── Wall — Walk speed -8% (was -10%) ──
+  // ── Wall — Walk speed -5% ──
   { id: 'wall', name: 'Wall', frameIndex: frame(2, 2),
-    description: 'Walk speed -8%',
-    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.92)); },
-    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.92); } },
+    description: 'Walk speed -5%',
+    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.95)); },
+    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.95); } },
 
   // ── Bush — Drag rate +0.02 ──
   { id: 'bush', name: 'Bush', frameIndex: frame(1, 0),
@@ -71,11 +71,11 @@ export const DECOR_CATALOG: DecorDef[] = [
     apply: (s) => { s.turnBackRate += 0.02; s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.95)); },
     unapply: (s) => { s.turnBackRate -= 0.02; s.walkSpeed = Math.round(s.walkSpeed / 0.95); } },
 
-  // ── Cactus — Walk speed -12% ──
+  // ── Cactus — Walk speed -8% ──
   { id: 'cactus', name: 'Cactus', frameIndex: frame(4, 0),
-    description: 'Walk speed -12%',
-    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.88)); },
-    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.88); } },
+    description: 'Walk speed -8%',
+    apply: (s) => { s.walkSpeed = Math.max(40, Math.round(s.walkSpeed * 0.92)); },
+    unapply: (s) => { s.walkSpeed = Math.round(s.walkSpeed / 0.92); } },
 
   // ── Oak — birthratePerSec +1/s, Drag rate +0.01 ──
   { id: 'oak', name: 'Oak', frameIndex: frame(5, 0),
@@ -86,7 +86,7 @@ export const DECOR_CATALOG: DecorDef[] = [
   // ── Spruce — Click cooldown -50ms ──
   { id: 'spruce', name: 'Spruce', frameIndex: frame(6, 0),
     description: 'Click cooldown -50ms',
-    apply: (s) => { s.clickCooldown = Math.max(200, s.clickCooldown - 50); },
+    apply: (s) => { s.clickCooldown = Math.max(100, s.clickCooldown - 50); },
     unapply: (s) => { s.clickCooldown += 50; } },
 
   // ── Bench — Turn-back rate +0.02 ──
@@ -110,7 +110,7 @@ export const DECOR_CATALOG: DecorDef[] = [
   // ── Sign — Click cooldown -80ms ──
   { id: 'sign', name: 'Sign', frameIndex: frame(4, 1),
     description: 'Click cooldown -80ms',
-    apply: (s) => { s.clickCooldown = Math.max(200, s.clickCooldown - 80); },
+    apply: (s) => { s.clickCooldown = Math.max(100, s.clickCooldown - 80); },
     unapply: (s) => { s.clickCooldown += 80; } },
 
   // ── Market — Birth rate +4/day ──
@@ -140,6 +140,6 @@ export const DECOR_CATALOG: DecorDef[] = [
   // ── Barrel — Click cooldown -60ms, Birth rate +1/day ──
   { id: 'barrel', name: 'Barrel', frameIndex: frame(5, 2),
     description: 'Cooldown -60ms, birth +1/day',
-    apply: (s) => { s.clickCooldown = Math.max(200, s.clickCooldown - 60); s.birthRate += 1; },
+    apply: (s) => { s.clickCooldown = Math.max(100, s.clickCooldown - 60); s.birthRate += 1; },
     unapply: (s) => { s.clickCooldown += 60; s.birthRate = Math.max(0, s.birthRate - 1); } },
 ];

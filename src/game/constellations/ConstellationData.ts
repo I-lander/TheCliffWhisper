@@ -70,8 +70,6 @@ const dr = (v: number) => (s: PopulationStats) => { s.dragRate = Math.min(1, s.d
 const cc = (v: number) => (s: PopulationStats) => { s.clickCooldown = Math.max(100, s.clickCooldown - v); };
 const ac = (v: number) => (_s: PopulationStats, b: ConstellationBonuses) => { b.autoClickerCount += v; };
 const sm = (v: number) => (_s: PopulationStats, b: ConstellationBonuses) => { b.soulMultiplier += v; };
-const bps = (v: number) => (s: PopulationStats) => { s.birthratePerSec += v; };
-const br = (v: number) => (s: PopulationStats) => { s.birthRate += v; };
 const dm = (v: number) => (s: PopulationStats) => { s.deathMultiplier *= v; };
 const ab = (id: string) => (_s: PopulationStats, b: ConstellationBonuses) => { b.abilities.push(id); };
 const noop = () => {};
@@ -151,7 +149,7 @@ const NODES: SkillNode[] = [
 
   // ═══════════════════════════════════════════════════════════════
   // VELOCITY — walkSpeed (nodes 1-33)
-  // Max walkSpeed: 120 + 230 = 350
+  // Max walkSpeed: 100 + 236 = 336
   // ═══════════════════════════════════════════════════════════════
 
   // Trunk (15 nodes): +3,+3,+5,+5,+7,+7,+8,+10,+10,+12,+12,+15,+15,+18,+20 = +150
@@ -201,36 +199,36 @@ const NODES: SkillNode[] = [
     ...p(VELOCITY_DEG + FORK_A_OFFSET, forkAR(5)), apply: ws(15) },
 
   // Fork B (from node 9, 5 nodes): +4,+5,+6,+7,+8 = +30 (minor speed + birth rate combos)
-  { id: 've_fb1', name: 'Frantic March', cost: 1200, description: 'Walk speed +4, birth rate +50/day',
-    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(0)), apply: (s) => { s.walkSpeed += 4; s.birthRate += 50; } },
-  { id: 've_fb2', name: 'Screaming Sprint', cost: 5000, description: 'Walk speed +5, birth rate +200/day',
-    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(1)), apply: (s) => { s.walkSpeed += 5; s.birthRate += 200; } },
-  { id: 've_fb3', name: 'Panic Exodus', cost: 15000, description: 'Walk speed +6, birth rate +500/day',
-    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(2)), apply: (s) => { s.walkSpeed += 6; s.birthRate += 500; } },
-  { id: 've_fb4', name: 'Death Race', cost: 50000, description: 'Walk speed +7, birth rate +2000/day',
-    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(3)), apply: (s) => { s.walkSpeed += 7; s.birthRate += 2000; } },
-  { id: 've_fb5', name: 'The Endless Stampede', cost: 200000, description: 'Walk speed +8, birth rate +5000/day',
-    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(4)), apply: (s) => { s.walkSpeed += 8; s.birthRate += 5000; } },
+  { id: 've_fb1', name: 'Frantic March', cost: 1200, description: 'Walk speed +4, birth rate +20/day',
+    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(0)), apply: (s) => { s.walkSpeed += 4; s.birthRate += 20; } },
+  { id: 've_fb2', name: 'Screaming Sprint', cost: 5000, description: 'Walk speed +5, birth rate +50/day',
+    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(1)), apply: (s) => { s.walkSpeed += 5; s.birthRate += 50; } },
+  { id: 've_fb3', name: 'Panic Exodus', cost: 15000, description: 'Walk speed +6, birth rate +150/day',
+    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(2)), apply: (s) => { s.walkSpeed += 6; s.birthRate += 150; } },
+  { id: 've_fb4', name: 'Death Race', cost: 50000, description: 'Walk speed +7, birth rate +500/day',
+    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(3)), apply: (s) => { s.walkSpeed += 7; s.birthRate += 500; } },
+  { id: 've_fb5', name: 'The Endless Stampede', cost: 200000, description: 'Walk speed +8, birth rate +1500/day',
+    ...p(VELOCITY_DEG + FORK_B_OFFSET, forkBR(4)), apply: (s) => { s.walkSpeed += 8; s.birthRate += 1500; } },
 
   // Ability: Frenzy Pulse (from node 6, 7 nodes)
   { id: 've_ab1', name: 'Frenzy Pulse', cost: 100, description: 'Unlock: Walk speed x2 for 8s (cd 45s)',
     ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(0)), apply: ab('frenzy_pulse') },
-  { id: 've_ab2', name: 'Sustained Frenzy', cost: 350, description: 'Frenzy Pulse duration +4s',
-    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.frenzyPulse.duration += 4000; } },
+  { id: 've_ab2', name: 'Sustained Frenzy', cost: 350, description: 'Frenzy Pulse duration +3s',
+    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.frenzyPulse.duration += 3000; } },
   { id: 've_ab3', name: 'Amplified Frenzy', cost: 1000, description: 'Frenzy Pulse multiplier x2.5',
     ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.frenzyPulse.multiplier = 2.5; } },
   { id: 've_ab4', name: 'Relentless Frenzy', cost: 3000, description: 'Frenzy Pulse cooldown -10s',
     ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.frenzyPulse.cooldown -= 10000; } },
-  { id: 've_ab5', name: 'Overwhelming Frenzy', cost: 10000, description: 'Frenzy Pulse x3, duration +4s',
-    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.frenzyPulse.multiplier = 3; b.frenzyPulse.duration += 4000; } },
-  { id: 've_ab6', name: 'Eternal Frenzy', cost: 40000, description: 'Frenzy Pulse cd -10s, duration +4s',
-    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.frenzyPulse.cooldown -= 10000; b.frenzyPulse.duration += 4000; } },
-  { id: 've_ab7', name: 'Godspeed', cost: 150000, description: 'Frenzy Pulse x4, cd -5s',
-    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.frenzyPulse.multiplier = 4; b.frenzyPulse.cooldown -= 5000; } },
+  { id: 've_ab5', name: 'Overwhelming Frenzy', cost: 10000, description: 'Frenzy Pulse x3, duration +2s',
+    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.frenzyPulse.multiplier = 3; b.frenzyPulse.duration += 2000; } },
+  { id: 've_ab6', name: 'Eternal Frenzy', cost: 40000, description: 'Frenzy Pulse cd -10s, duration +2s',
+    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.frenzyPulse.cooldown -= 10000; b.frenzyPulse.duration += 2000; } },
+  { id: 've_ab7', name: 'Godspeed', cost: 150000, description: 'Frenzy Pulse x4, cd -5s, duration +1s',
+    ...p(VELOCITY_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.frenzyPulse.multiplier = 4; b.frenzyPulse.cooldown -= 5000; b.frenzyPulse.duration += 1000; } },
 
   // ═══════════════════════════════════════════════════════════════
   // DEVOTION — turnBackRate (nodes 34-66)
-  // Total trunk reduction: -0.20 (from 0.30 → 0.10)
+  // Total trunk reduction: -0.205 (from 0.25 → 0.045 → clamped to 0.05)
   // ═══════════════════════════════════════════════════════════════
 
   // Trunk (15 nodes): -0.01 x7, -0.015 x4, -0.02 x4 = -0.20
@@ -296,20 +294,20 @@ const NODES: SkillNode[] = [
     ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(0)), apply: ab('void_call') },
   { id: 'de_ab2', name: 'Extended Silence', cost: 350, description: 'Void Call duration +3s',
     ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.voidCall.duration += 3000; } },
-  { id: 'de_ab3', name: 'Quickened Call', cost: 1000, description: 'Void Call cooldown -5s',
-    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.voidCall.cooldown -= 5000; } },
-  { id: 'de_ab4', name: 'Lingering Void', cost: 3000, description: 'Void Call duration +4s',
-    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.voidCall.duration += 4000; } },
-  { id: 'de_ab5', name: 'Resonant Void', cost: 10000, description: 'Void Call cooldown -5s',
-    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.voidCall.cooldown -= 5000; } },
-  { id: 'de_ab6', name: 'Eternal Void', cost: 40000, description: 'Void Call duration +5s, cd -5s',
-    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.voidCall.duration += 5000; b.voidCall.cooldown -= 5000; } },
-  { id: 'de_ab7', name: 'Absolute Void', cost: 150000, description: 'Void Call duration +5s, cd -5s',
-    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.voidCall.duration += 5000; b.voidCall.cooldown -= 5000; } },
+  { id: 'de_ab3', name: 'Quickened Call', cost: 1000, description: 'Void Call cooldown -4s',
+    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.voidCall.cooldown -= 4000; } },
+  { id: 'de_ab4', name: 'Lingering Void', cost: 3000, description: 'Void Call duration +3s',
+    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.voidCall.duration += 3000; } },
+  { id: 'de_ab5', name: 'Resonant Void', cost: 10000, description: 'Void Call cooldown -4s',
+    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.voidCall.cooldown -= 4000; } },
+  { id: 'de_ab6', name: 'Eternal Void', cost: 40000, description: 'Void Call duration +3s, cd -4s',
+    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.voidCall.duration += 3000; b.voidCall.cooldown -= 4000; } },
+  { id: 'de_ab7', name: 'Absolute Void', cost: 150000, description: 'Void Call duration +3s, cd -3s',
+    ...p(DEVOTION_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.voidCall.duration += 3000; b.voidCall.cooldown -= 3000; } },
 
   // ═══════════════════════════════════════════════════════════════
   // CONTAGION — dragRate (nodes 67-99)
-  // Total trunk: +0.30 (from 0.05 → 0.35)
+  // Total trunk: +0.34 (from 0.05 → 0.39)
   // ═══════════════════════════════════════════════════════════════
 
   // Trunk (15 nodes): +0.01 x4, +0.02 x5, +0.03 x4, +0.04 x2 = +0.30
@@ -359,16 +357,16 @@ const NODES: SkillNode[] = [
     ...p(CONTAGION_DEG + FORK_A_OFFSET, forkAR(5)), apply: dr(0.03) },
 
   // Fork B (from node 9, 5 nodes): birth rate combos
-  { id: 'co_fb1', name: 'Ripple Effect', cost: 1200, description: 'Drag +0.02, birth +100/day',
-    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(0)), apply: (s) => { s.dragRate += 0.02; s.birthRate += 100; } },
-  { id: 'co_fb2', name: 'Undertow', cost: 5000, description: 'Drag +0.03, birth +300/day',
-    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(1)), apply: (s) => { s.dragRate += 0.03; s.birthRate += 300; } },
-  { id: 'co_fb3', name: 'Tsunami of Flesh', cost: 15000, description: 'Drag +0.03, birth +1000/day',
-    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(2)), apply: (s) => { s.dragRate += 0.03; s.birthRate += 1000; } },
-  { id: 'co_fb4', name: 'Tidal Wave', cost: 50000, description: 'Drag +0.04, birth +5000/day',
-    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(3)), apply: (s) => { s.dragRate += 0.04; s.birthRate += 5000; } },
-  { id: 'co_fb5', name: 'World Flood', cost: 200000, description: 'Drag +0.05, birth +20000/day',
-    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(4)), apply: (s) => { s.dragRate += 0.05; s.birthRate += 20000; } },
+  { id: 'co_fb1', name: 'Ripple Effect', cost: 1200, description: 'Drag +0.02, birth +30/day',
+    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(0)), apply: (s) => { s.dragRate += 0.02; s.birthRate += 30; } },
+  { id: 'co_fb2', name: 'Undertow', cost: 5000, description: 'Drag +0.03, birth +80/day',
+    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(1)), apply: (s) => { s.dragRate += 0.03; s.birthRate += 80; } },
+  { id: 'co_fb3', name: 'Tsunami of Flesh', cost: 15000, description: 'Drag +0.03, birth +250/day',
+    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(2)), apply: (s) => { s.dragRate += 0.03; s.birthRate += 250; } },
+  { id: 'co_fb4', name: 'Tidal Wave', cost: 50000, description: 'Drag +0.04, birth +800/day',
+    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(3)), apply: (s) => { s.dragRate += 0.04; s.birthRate += 800; } },
+  { id: 'co_fb5', name: 'World Flood', cost: 200000, description: 'Drag +0.05, birth +3000/day',
+    ...p(CONTAGION_DEG + FORK_B_OFFSET, forkBR(4)), apply: (s) => { s.dragRate += 0.05; s.birthRate += 3000; } },
 
   // Ability: Dark Wave (from node 6, 7 nodes)
   { id: 'co_ab1', name: 'Dark Wave', cost: 100, description: 'Unlock: Spawn 5 humans (cd 30s)',
@@ -391,7 +389,7 @@ const NODES: SkillNode[] = [
   // ═══════════════════════════════════════════════════════════════
 
   // Trunk (15 nodes): alternating cooldown reduction & auto-clickers
-  //   total: -490ms cooldown, +8 auto-clickers
+  //   total: -460ms cooldown, +9 auto-clickers
   { id: 'ma_1', name: 'Loose Gear', cost: 5, description: 'Click cooldown -20ms',
     ...p(MACHINERY_DEG, trunkR(0)), apply: cc(20) },
   { id: 'ma_2', name: 'First Automaton', cost: 8, description: '+1 auto-clicker',
@@ -452,18 +450,18 @@ const NODES: SkillNode[] = [
   // Ability: Soul Harvest (from node 6, 7 nodes)
   { id: 'ma_ab1', name: 'Soul Harvest', cost: 100, description: 'Unlock: Souls x2 for 10s (cd 40s)',
     ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(0)), apply: ab('soul_harvest') },
-  { id: 'ma_ab2', name: 'Extended Harvest', cost: 350, description: 'Soul Harvest duration +5s',
-    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.soulHarvest.duration += 5000; } },
+  { id: 'ma_ab2', name: 'Extended Harvest', cost: 350, description: 'Soul Harvest duration +3s',
+    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.soulHarvest.duration += 3000; } },
   { id: 'ma_ab3', name: 'Amplified Harvest', cost: 1000, description: 'Soul Harvest x2.5',
     ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.soulHarvest.multiplier = 2.5; } },
-  { id: 'ma_ab4', name: 'Quickened Harvest', cost: 3000, description: 'Soul Harvest cooldown -10s',
-    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.soulHarvest.cooldown -= 10000; } },
-  { id: 'ma_ab5', name: 'Overwhelming Harvest', cost: 10000, description: 'Soul Harvest x3, duration +5s',
-    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.soulHarvest.multiplier = 3; b.soulHarvest.duration += 5000; } },
-  { id: 'ma_ab6', name: 'Eternal Harvest', cost: 40000, description: 'Soul Harvest cd -10s, duration +5s',
-    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.soulHarvest.cooldown -= 10000; b.soulHarvest.duration += 5000; } },
-  { id: 'ma_ab7', name: 'Infinite Reaping', cost: 150000, description: 'Soul Harvest x4, cd -5s',
-    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.soulHarvest.multiplier = 4; b.soulHarvest.cooldown -= 5000; } },
+  { id: 'ma_ab4', name: 'Quickened Harvest', cost: 3000, description: 'Soul Harvest cooldown -8s',
+    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.soulHarvest.cooldown -= 8000; } },
+  { id: 'ma_ab5', name: 'Overwhelming Harvest', cost: 10000, description: 'Soul Harvest x3, duration +3s',
+    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.soulHarvest.multiplier = 3; b.soulHarvest.duration += 3000; } },
+  { id: 'ma_ab6', name: 'Eternal Harvest', cost: 40000, description: 'Soul Harvest cd -8s, duration +2s',
+    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.soulHarvest.cooldown -= 8000; b.soulHarvest.duration += 2000; } },
+  { id: 'ma_ab7', name: 'Infinite Reaping', cost: 150000, description: 'Soul Harvest x4, cd -5s, duration +2s',
+    ...p(MACHINERY_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.soulHarvest.multiplier = 4; b.soulHarvest.cooldown -= 5000; b.soulHarvest.duration += 2000; } },
 
   // ═══════════════════════════════════════════════════════════════
   // GENESIS — soulMultiplier + deathMultiplier + birthratePerSec (nodes 133-165)
@@ -501,48 +499,48 @@ const NODES: SkillNode[] = [
   { id: 'ge_15', name: 'The God Eater', cost: 500000, description: 'Soul multiplier +3',
     ...p(GENESIS_DEG, trunkR(14)), apply: sm(3) },
 
-  // Fork A (from node 5, 6 nodes): soulMultiplier + birthratePerSec combos
+  // Fork A (from node 5, 6 nodes): soulMultiplier + birthratePerSec combos — total +13 soul, +20/s
   { id: 'ge_fa1', name: 'Greedy Grasp', cost: 50, description: 'Soul mult +0.5, births +1/s',
     ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(0)), apply: (s, b) => { b.soulMultiplier += 0.5; s.birthratePerSec += 1; } },
-  { id: 'ge_fa2', name: 'Soul Taxation', cost: 150, description: 'Soul mult +1, births +2/s',
-    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(1)), apply: (s, b) => { b.soulMultiplier += 1; s.birthratePerSec += 2; } },
-  { id: 'ge_fa3', name: 'Spiritual Monopoly', cost: 500, description: 'Soul mult +1.5, births +3/s',
-    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(2)), apply: (s, b) => { b.soulMultiplier += 1.5; s.birthratePerSec += 3; } },
-  { id: 'ge_fa4', name: 'Philosopher\'s Reap', cost: 2000, description: 'Soul mult +2, births +5/s',
-    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(3)), apply: (s, b) => { b.soulMultiplier += 2; s.birthratePerSec += 5; } },
-  { id: 'ge_fa5', name: 'Eternal Hunger', cost: 8000, description: 'Soul mult +3, births +10/s',
-    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(4)), apply: (s, b) => { b.soulMultiplier += 3; s.birthratePerSec += 10; } },
-  { id: 'ge_fa6', name: 'Omnivorous God', cost: 30000, description: 'Soul mult +5, births +20/s',
-    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(5)), apply: (s, b) => { b.soulMultiplier += 5; s.birthratePerSec += 20; } },
+  { id: 'ge_fa2', name: 'Soul Taxation', cost: 150, description: 'Soul mult +1, births +1/s',
+    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(1)), apply: (s, b) => { b.soulMultiplier += 1; s.birthratePerSec += 1; } },
+  { id: 'ge_fa3', name: 'Spiritual Monopoly', cost: 500, description: 'Soul mult +1.5, births +2/s',
+    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(2)), apply: (s, b) => { b.soulMultiplier += 1.5; s.birthratePerSec += 2; } },
+  { id: 'ge_fa4', name: 'Philosopher\'s Reap', cost: 2000, description: 'Soul mult +2, births +3/s',
+    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(3)), apply: (s, b) => { b.soulMultiplier += 2; s.birthratePerSec += 3; } },
+  { id: 'ge_fa5', name: 'Eternal Hunger', cost: 8000, description: 'Soul mult +3, births +5/s',
+    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(4)), apply: (s, b) => { b.soulMultiplier += 3; s.birthratePerSec += 5; } },
+  { id: 'ge_fa6', name: 'Omnivorous God', cost: 30000, description: 'Soul mult +5, births +8/s',
+    ...p(GENESIS_DEG + FORK_A_OFFSET, forkAR(5)), apply: (s, b) => { b.soulMultiplier += 5; s.birthratePerSec += 8; } },
 
   // Fork B (from node 9, 5 nodes): DEATH MULTIPLIER — multiplicative
-  // x2 → x5 → x10 → x20 → x50 = total x100,000
+  // x2 → x3 → x5 → x10 → x20 = total x6,000
   { id: 'ge_fb1', name: 'Ticking Clock', cost: 800, description: 'Death multiplier x2',
     ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(0)), apply: dm(2) },
-  { id: 'ge_fb2', name: 'Mass Graves', cost: 5000, description: 'Death multiplier x5',
-    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(1)), apply: dm(5) },
-  { id: 'ge_fb3', name: 'Reaper\'s Scythe', cost: 30000, description: 'Death multiplier x10',
-    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(2)), apply: dm(10) },
-  { id: 'ge_fb4', name: 'Apocalypse Herald', cost: 200000, description: 'Death multiplier x20',
-    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(3)), apply: dm(20) },
-  { id: 'ge_fb5', name: 'Extinction Engine', cost: 1000000, description: 'Death multiplier x50',
-    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(4)), apply: dm(50) },
+  { id: 'ge_fb2', name: 'Mass Graves', cost: 5000, description: 'Death multiplier x3',
+    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(1)), apply: dm(3) },
+  { id: 'ge_fb3', name: 'Reaper\'s Scythe', cost: 30000, description: 'Death multiplier x5',
+    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(2)), apply: dm(5) },
+  { id: 'ge_fb4', name: 'Apocalypse Herald', cost: 200000, description: 'Death multiplier x10',
+    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(3)), apply: dm(10) },
+  { id: 'ge_fb5', name: 'Extinction Engine', cost: 1000000, description: 'Death multiplier x20',
+    ...p(GENESIS_DEG + FORK_B_OFFSET, forkBR(4)), apply: dm(20) },
 
   // Ability: Silence (from node 6, 7 nodes)
   { id: 'ge_ab1', name: 'Silence', cost: 100, description: 'Unlock: birthratePerSec = 0 for 15s (cd 60s)',
     ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(0)), apply: ab('silence') },
-  { id: 'ge_ab2', name: 'Extended Silence', cost: 350, description: 'Silence duration +5s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.silence.duration += 5000; } },
-  { id: 'ge_ab3', name: 'Quickened Silence', cost: 1000, description: 'Silence cooldown -10s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.silence.cooldown -= 10000; } },
-  { id: 'ge_ab4', name: 'Deep Silence', cost: 3000, description: 'Silence duration +5s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.silence.duration += 5000; } },
-  { id: 'ge_ab5', name: 'Resonant Silence', cost: 10000, description: 'Silence cooldown -10s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.silence.cooldown -= 10000; } },
-  { id: 'ge_ab6', name: 'Eternal Silence', cost: 40000, description: 'Silence duration +10s, cd -10s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.silence.duration += 10000; b.silence.cooldown -= 10000; } },
-  { id: 'ge_ab7', name: 'The Great Mute', cost: 150000, description: 'Silence duration +10s, cd -10s',
-    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.silence.duration += 10000; b.silence.cooldown -= 10000; } },
+  { id: 'ge_ab2', name: 'Extended Silence', cost: 350, description: 'Silence duration +3s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(1)), apply: (_s, b) => { b.silence.duration += 3000; } },
+  { id: 'ge_ab3', name: 'Quickened Silence', cost: 1000, description: 'Silence cooldown -8s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(2)), apply: (_s, b) => { b.silence.cooldown -= 8000; } },
+  { id: 'ge_ab4', name: 'Deep Silence', cost: 3000, description: 'Silence duration +3s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(3)), apply: (_s, b) => { b.silence.duration += 3000; } },
+  { id: 'ge_ab5', name: 'Resonant Silence', cost: 10000, description: 'Silence cooldown -8s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(4)), apply: (_s, b) => { b.silence.cooldown -= 8000; } },
+  { id: 'ge_ab6', name: 'Eternal Silence', cost: 40000, description: 'Silence duration +2s, cd -6s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(5)), apply: (_s, b) => { b.silence.duration += 2000; b.silence.cooldown -= 6000; } },
+  { id: 'ge_ab7', name: 'The Great Mute', cost: 150000, description: 'Silence duration +2s, cd -5s',
+    ...p(GENESIS_DEG + ABILITY_OFFSET, abilR(6)), apply: (_s, b) => { b.silence.duration += 2000; b.silence.cooldown -= 5000; } },
 ];
 
 // Resolve string-based edges to index pairs

@@ -28,6 +28,7 @@ export class Human extends Phaser.GameObjects.Sprite {
   private walkBobAmount: number = 0;
   private walkAnimSpeed: number = 0;
   private flipProgress: number = 0;
+  private flipToWalk: boolean = false; // true = reconversion flip (back toward cliff)
   private baseScaleX: number = 0;
   private splashed: boolean = false;
 
@@ -51,9 +52,9 @@ export class Human extends Phaser.GameObjects.Sprite {
     this.setScale(scale);
     this.setOrigin(0.5, 1);
 
-    // Randomize walk speed: ±25% of base, clamped
+    // Randomize walk speed: ±25% of base, floor only (no upper clamp)
     const speedVariation = 0.75 + Math.random() * 0.5;
-    this.walkSpeed = Math.max(60, Math.min(300, walkSpeed * speedVariation));
+    this.walkSpeed = Math.max(60, walkSpeed * speedVariation);
 
     this.cliffEdgeX = cliffEdgeX;
     this.groundY = groundY;
@@ -106,13 +107,20 @@ this.setDepth(105);
           this.setScale(this.baseScaleX * (1 - this.flipProgress), this.scaleY);
         } else if (this.flipProgress < 2) {
           // Phase 2: expand back (flipped)
+          const flipped = !this.flipToWalk;
           this.setScale(this.baseScaleX * (this.flipProgress - 1), this.scaleY);
-          this.setFlipX(true);
+          this.setFlipX(flipped);
         } else {
-          // Done — start walking back
+          // Done — resume appropriate walk direction
           this.setScale(this.baseScaleX, this.scaleY);
-          this.setFlipX(true);
-          this.state = HumanState.TurningBack;
+          if (this.flipToWalk) {
+            this.setFlipX(false);
+            this.state = HumanState.Walking;
+            this.flipToWalk = false;
+          } else {
+            this.setFlipX(true);
+            this.state = HumanState.TurningBack;
+          }
         }
         break;
 
@@ -226,6 +234,23 @@ this.setDepth(105);
 
   isWalking(): boolean {
     return this.state === HumanState.Walking;
+  }
+
+  isTurningBack(): boolean {
+    return this.state === HumanState.TurningBack;
+  }
+
+  /** Re-convert a turning-back human: flip them around and resume walking toward the cliff. */
+  reconvert() {
+    if (this.state !== HumanState.TurningBack) return;
+    this.state = HumanState.FlipTurn;
+    this.flipProgress = 0;
+    this.flipToWalk = true;
+    this.setRotation(0);
+    this.shouldTurnBack = false;
+    this.setAlpha(1);
+    // New turn-back point further ahead so they don't immediately turn again
+    this.turnBackX = this.x + (this.cliffEdgeX - this.x) * (0.5 + Math.random() * 0.4);
   }
 
   getProgress(): number {

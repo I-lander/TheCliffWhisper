@@ -58,6 +58,7 @@ export class MainScene extends CustomScene {
   private humans: Human[] = [];
   private firstHumanSpawned: boolean = false;
   private autoClickTimer: number = 0;
+  private birthSpawnTimer: number = 0;
   private runEnded: boolean = false;
 
   // Click cooldown
@@ -94,6 +95,7 @@ export class MainScene extends CustomScene {
     this.humans = [];
     this.firstHumanSpawned = false;
     this.autoClickTimer = 0;
+    this.birthSpawnTimer = 0;
     this.runEnded = false;
     this.clickCooldownTimer = 0;
     this.soulHarvestActive = false;
@@ -280,6 +282,7 @@ export class MainScene extends CustomScene {
       }
       if (phase === GamePhase.Daytime) {
         this.autoClickTimer = 0;
+        this.birthSpawnTimer = 0;
         this.clickCooldownTimer = 0;
         this.soulHarvestActive = false;
         this.juiceEffects.resetDaily();
@@ -400,7 +403,7 @@ export class MainScene extends CustomScene {
       this.isDragging = false;
     });
 
-    // Debug shortcuts (Space = skip phase, F = fast-forward 10s)
+    // Escape always works — debug shortcuts only in dev mode
     this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
       if (this.runEnded) return;
       if (e.code === 'Escape') {
@@ -408,6 +411,7 @@ export class MainScene extends CustomScene {
         this.openPauseMenu();
         return;
       }
+      if (import.meta.env.VITE_IS_DEV_SPLASH !== 'true') return;
       if (e.code === 'Space') {
         e.preventDefault();
         this.gameManager.skipPhase();
@@ -559,6 +563,21 @@ export class MainScene extends CustomScene {
       }
     }
 
+    // birthratePerSec spawns during Daytime — new humans born directly onto the cliff
+    if (this.gameManager.getPhase() === GamePhase.Daytime && !this.populationManager.isExtinct()) {
+      const bps = this.populationManager.stats.birthratePerSec;
+      if (bps > 0) {
+        this.birthSpawnTimer += delta;
+        const interval = 1000 / bps;
+        while (this.birthSpawnTimer >= interval) {
+          this.birthSpawnTimer -= interval;
+          this.populationManager.population++;
+          this.populationManager.born++;
+          this.spawnHuman();
+        }
+      }
+    }
+
     // Click cooldown
     if (this.clickCooldownTimer > 0) {
       this.clickCooldownTimer = Math.max(0, this.clickCooldownTimer - delta);
@@ -571,6 +590,20 @@ export class MainScene extends CustomScene {
     } else {
       this.cooldownBarBg.setVisible(false);
       this.cooldownBar.setVisible(false);
+    }
+
+    // Contagion: walking humans can re-convert turning-back humans when crossing
+    if (this.gameManager.getPhase() === GamePhase.Daytime) {
+      const crossDist = this.tileSize * 0.8;
+      const walkers = this.humans.filter((h) => h.isWalking());
+      const turners = this.humans.filter((h) => h.isTurningBack());
+      for (const walker of walkers) {
+        for (const turner of turners) {
+          if (Math.abs(walker.x - turner.x) < crossDist && this.populationManager.shouldDragTurnBack()) {
+            turner.reconvert();
+          }
+        }
+      }
     }
 
     // Update humans

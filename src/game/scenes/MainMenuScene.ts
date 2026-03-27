@@ -390,17 +390,19 @@ export class MainMenuScene extends CustomScene {
       .setAlpha(0.6)
       .setDepth(100);
 
-    // Screenshot (F2)
-    this.input.keyboard!.on('keydown-F2', () => {
-      this.game.renderer.snapshot((image) => {
-        if (image instanceof HTMLImageElement) {
-          const a = document.createElement('a');
-          a.href = image.src;
-          a.download = 'banner.png';
-          a.click();
-        }
+    // Screenshot (F2) — dev only
+    if (import.meta.env.VITE_IS_DEV_SPLASH === 'true') {
+      this.input.keyboard!.on('keydown-F2', () => {
+        this.game.renderer.snapshot((image) => {
+          if (image instanceof HTMLImageElement) {
+            const a = document.createElement('a');
+            a.href = image.src;
+            a.download = 'banner.png';
+            a.click();
+          }
+        });
       });
-    });
+    }
 
     // Humans — some already on the cliff, others will spawn off-screen
     this.menuHumans = [];
