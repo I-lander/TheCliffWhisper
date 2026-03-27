@@ -1,10 +1,12 @@
 {
   "name": "the-cliff-whisper",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "commonjs",
   "homepage": "./",
   "scripts": {
+    "version:patch": "node push-new-version.js patch",
+    "version:minor": "node push-new-version.js minor",
     "start": "vite",
     "build": "vite build --base=./",
     "sync": "npx cap sync",
