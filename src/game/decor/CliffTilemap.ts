@@ -114,6 +114,26 @@ export class CliffTilemap {
     return sprite;
   }
 
+  /** Place an element instantly (no animation), used for save restore. */
+  placeElementInstant(col: number, row: number, frameIndex: number, elementId: string): Phaser.GameObjects.Image | null {
+    const cell = this.getCell(col, row);
+    if (!cell || !cell.solid || cell.elementId) return null;
+
+    const scale = this.tileSize / 16;
+    const wx = this.originX + col * this.tileSize;
+    const wy = this.originY + row * this.tileSize - this.tileSize;
+    const depth = row * 10 + 5;
+
+    const sprite = this.scene.add.image(wx, wy, 'worldElement', frameIndex)
+      .setOrigin(0, 0)
+      .setScale(scale)
+      .setDepth(depth);
+
+    cell.elementSprite = sprite;
+    cell.elementId = elementId;
+    return sprite;
+  }
+
   getTopSolidRow(col: number): number {
     for (let r = 0; r < this.rows; r++) {
       if (this.isSolid(col, r)) return r;

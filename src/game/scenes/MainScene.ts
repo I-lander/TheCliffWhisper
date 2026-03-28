@@ -780,6 +780,7 @@ export class MainScene extends CustomScene {
       souls: this.constellationManager.souls,
       unlockedNodes: Array.from(this.constellationManager.unlockedNodes),
       bonuses: JSON.parse(JSON.stringify(this.constellationManager.bonuses)),
+      placedDecor: this.decorManager.getSerializableDecor(),
     });
   }
 
@@ -801,6 +802,57 @@ export class MainScene extends CustomScene {
     this.constellationManager.souls = data.souls;
     this.constellationManager.unlockedNodes = new Set(data.unlockedNodes);
     this.constellationManager.bonuses = JSON.parse(JSON.stringify(data.bonuses));
+
+    // Restore placed decorations (hills + elements, no animation)
+    if (data.placedDecor && data.placedDecor.length > 0) {
+      // Temporarily swap the callback to use instant placement
+      this.decorManager.setOnDecorPlaced((placed) => {
+        if (placed.elevation > 0) {
+          const row = this.cliffTilemap.rows - 1 - placed.elevation;
+          for (let dc = -1; dc <= 1; dc++) {
+            const c = placed.slotIndex + dc;
+            if (c >= 0 && c < this.cliffTilemap.cols) {
+              this.cliffTilemap.setSolid(c, row);
+            }
+          }
+        }
+        const topRow = this.cliffTilemap.getTopSolidRow(placed.slotIndex);
+        if (topRow >= 0) {
+          this.cliffTilemap.placeElementInstant(
+            placed.slotIndex,
+            topRow,
+            placed.def.frameIndex,
+            placed.def.id,
+          );
+        }
+      });
+
+      this.decorManager.restoreDecor(data.placedDecor);
+
+      // Restore the normal callback with animation + sound
+      this.decorManager.setOnDecorPlaced((placed) => {
+        const decoSound = DECO_AUDIO[placed.def.id];
+        if (decoSound) this.audio.playSfx(decoSound, 0.35);
+        if (placed.elevation > 0) {
+          const row = this.cliffTilemap.rows - 1 - placed.elevation;
+          for (let dc = -1; dc <= 1; dc++) {
+            const c = placed.slotIndex + dc;
+            if (c >= 0 && c < this.cliffTilemap.cols) {
+              this.cliffTilemap.setSolid(c, row);
+            }
+          }
+        }
+        const topRow = this.cliffTilemap.getTopSolidRow(placed.slotIndex);
+        if (topRow >= 0) {
+          this.cliffTilemap.placeElement(
+            placed.slotIndex,
+            topRow,
+            placed.def.frameIndex,
+            placed.def.id,
+          );
+        }
+      });
+    }
 
     // Refresh ability bar if abilities are unlocked
     const isDaytime = data.currentPhase === GamePhase.Daytime;

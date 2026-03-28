@@ -4,6 +4,12 @@ import { ConstellationBonuses, DEFAULT_BONUSES } from './constellations/Constell
 
 const SAVE_KEY = 'cliff_whisper_save';
 
+export interface SavedDecor {
+  decorId: string;
+  slotIndex: number;
+  elevation: number;
+}
+
 export interface SaveData {
   version: number;
   timestamp: number;
@@ -24,9 +30,12 @@ export interface SaveData {
   souls: number;
   unlockedNodes: string[];
   bonuses: ConstellationBonuses;
+
+  // DecorManager
+  placedDecor?: SavedDecor[];
 }
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 export class SaveManager {
   static save(data: SaveData): void {
@@ -44,6 +53,10 @@ export class SaveManager {
       // Migrate v1 saves: add deathMultiplier if missing
       if (data.stats && (data.stats as unknown as Record<string, unknown>).deathMultiplier === undefined) {
         data.stats.deathMultiplier = 1;
+      }
+      // Migrate v2 saves: add placedDecor if missing
+      if (!data.placedDecor) {
+        data.placedDecor = [];
       }
       return data;
     } catch {

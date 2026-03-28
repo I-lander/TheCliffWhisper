@@ -1,6 +1,7 @@
 import { GameManager, GamePhase } from '../GameManager';
 import { PopulationStats } from '../PopulationManager';
 import { DecorDef, DECOR_CATALOG } from './DecorData';
+import { SavedDecor } from '../SaveManager';
 
 export interface PlacedDecor {
   def: DecorDef;
@@ -147,5 +148,29 @@ export class DecorManager {
 
   getOccupiedCount(): number {
     return this.placed.length;
+  }
+
+  /** Serialize placed decor for saving. */
+  getSerializableDecor(): SavedDecor[] {
+    return this.placed.map((p) => ({
+      decorId: p.def.id,
+      slotIndex: p.slotIndex,
+      elevation: p.elevation,
+    }));
+  }
+
+  /** Restore decor from saved data. Applies stat effects and fires onDecorPlaced for each. */
+  restoreDecor(savedDecor: SavedDecor[]) {
+    for (const sd of savedDecor) {
+      const def = DECOR_CATALOG.find((d) => d.id === sd.decorId);
+      if (!def) continue;
+
+      this.occupied.set(sd.slotIndex, Math.max(sd.elevation, this.occupied.get(sd.slotIndex) ?? -1));
+
+      const placed: PlacedDecor = { def, slotIndex: sd.slotIndex, elevation: sd.elevation };
+      this.placed.push(placed);
+      def.apply(this.stats);
+      this.onDecorPlaced(placed);
+    }
   }
 }
