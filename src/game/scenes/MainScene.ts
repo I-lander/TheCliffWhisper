@@ -658,13 +658,15 @@ export class MainScene extends CustomScene {
       (jumpX: number, jumpY: number) => {
         this.populationManager.onHumanJumped();
         this.audio.playSfxRandom(AUDIO_KEYS.HUMAN_JUMP, 0.4);
-        // Soul gain: deathMultiplier × soulMultiplier × soul harvest if active
+        // Soul gain: sqrt-scaled deaths × soulMultiplier × soul harvest if active
+        // kills scales population reduction linearly; soul income uses sqrt for diminishing returns
         const kills = Math.floor(this.populationManager.stats.deathMultiplier);
+        const soulBasis = Math.ceil(Math.sqrt(kills));
         const soulHarvestMult = this.soulHarvestActive
           ? this.constellationManager.bonuses.soulHarvest.multiplier
           : 1;
         const soulGain = Math.floor(
-          kills * this.constellationManager.bonuses.soulMultiplier * soulHarvestMult,
+          soulBasis * this.constellationManager.bonuses.soulMultiplier * soulHarvestMult,
         );
         this.constellationManager.souls += soulGain;
         this.juiceEffects.onJump(jumpX, jumpY);
